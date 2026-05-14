@@ -1,0 +1,17 @@
+Package: smscollectr
+Title: Collect and Process Rain Gauge SMS Data
+Version: 0.0.1
+Authors@R: person("Ousmane", "Ouedraogo", role = c("aut", "cre"),
+    email = "ousmane@anam.bf")
+Description: Ingests, parses, and exports rain gauge SMS messages from Google
+    Sheets. Supports incremental reading, CLICOM output, and FTP delivery.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Imports:
+    curl,
+    googlesheets4,
+    rappdirs,
+    tibble,
+    vctrs
