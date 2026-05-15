@@ -18,3 +18,5 @@ Imports:
     rlang
 URL: https://github.com/oousmane/smscollectr
 BugReports: https://github.com/oousmane/smscollectr/issues
+Depends: 
+    R (>= 3.5)
