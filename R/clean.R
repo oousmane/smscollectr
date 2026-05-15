@@ -14,9 +14,12 @@
 #' clean_sheet(url)
 #' }
 #'
-#' @importFrom googlesheets4 read_sheet range_delete
 #' @export
+#' 
 clean_sheet <- function(url) {
+  
+  .check_auth()
+  
   stopifnot(is.character(url), length(url) == 1, nchar(url) > 0)
   
   df <- tryCatch(

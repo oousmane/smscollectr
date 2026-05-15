@@ -18,7 +18,6 @@
 #' }
 #'
 #' @seealso [get_sheet_url()]
-#' @importFrom keyring key_set_with_value
 #' @export
 set_sheet_url <- function(url,
                           key     = "gs_url",
@@ -70,7 +69,6 @@ set_sheet_url <- function(url,
 #' }
 #'
 #' @seealso [set_sheet_url()]
-#' @importFrom keyring key_get key_list
 #' @export
 get_sheet_url <- function(key     = "gs_url",
                           service = "smscollectr") {

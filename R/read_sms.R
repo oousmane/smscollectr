@@ -30,11 +30,11 @@
 #' read_sms(url, sheet = "Saisie", col = "message")
 #' }
 #'
-#' @importFrom googlesheets4 read_sheet
-#' @importFrom dplyr pull mutate select group_by slice_tail ungroup
-#' @importFrom tibble tibble
 #' @export
 read_sms <- function(sheet_url, sheet = 1, col = "sms") {
+  
+  .check_auth()
+  
   stopifnot(
     is.character(sheet_url), length(sheet_url) == 1, nchar(sheet_url) > 0,
     length(sheet) == 1,

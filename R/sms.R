@@ -72,10 +72,7 @@ is_gauge_sms <- function(text = NULL) {
 
 
 #' Parse a vector of rain gauge SMS messages
-#'
-#' Applies [.parse_sms()] to each element of `texts`, binds the results, and
-#' silently drops rows where all fields are `NA` (i.e. invalid or unparseable
-#' messages). Duplicate observations (same station, year, month, day) are
+#'Duplicate observations (same station, year, month, day) are
 #' deduplicated, keeping the last occurrence.
 #'
 #' @param texts `character` vector of SMS strings.
@@ -101,8 +98,6 @@ is_gauge_sms <- function(text = NULL) {
 #' parse_sms(msgs)
 #' }
 #'
-#' @importFrom purrr map
-#' @importFrom dplyr bind_rows filter if_all everything group_by slice_tail ungroup
 #' @export
 parse_sms <- function(texts) {
   if (!is.character(texts)) stop("`texts` must be a character vector")
