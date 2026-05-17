@@ -70,29 +70,6 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
     return(empty_result)
   }
   
-  parsed <- parse_sms(texts)
-  
-  if (nrow(parsed) == 0) {
-    message("No valid SMS messages could be parsed.")
-    return(empty_result)
-  }
-  
-  parsed |>
-    dplyr::mutate(
-      time  = "06:00",
-      month = sprintf("%02d", month),
-      day   = sprintf("%02d", day)
-    ) |>
-    dplyr::group_by(.data$eg_gh_id, .data$year, .data$month, .data$day) |>
-    dplyr::slice_tail(n = 1) |>
-    dplyr::ungroup() |>
-    dplyr::select(
-      .data$eg_gh_id,
-      .data$year,
-      .data$month,
-      .data$day,
-      .data$time,
-      .data$value,
-      .data$flag
-    )
+ parse_sms(texts)
+ 
 }
