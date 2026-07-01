@@ -17,7 +17,7 @@ structured text messages to a central Google Sheet.
 
 # How it works
 
-![Workflow](reference/figures/workflow2.png)
+![Workflow](reference/figures/workflow3.png)
 
 Workflow
 
