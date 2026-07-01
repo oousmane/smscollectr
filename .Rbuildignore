@@ -2,6 +2,9 @@
 ^\.Rproj\.user$
 ^LICENSE\.md$
 ^README\.Rmd$
-^\.Rproj$
-^\.git$
+^data-raw$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
 ^\.github$
+^\.git$

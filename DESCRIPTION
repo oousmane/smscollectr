@@ -1,20 +1,27 @@
 Package: smscollectr
 Title: Collect and Process Rain Gauge SMS Data
-Version: 0.0.1
+Version: 0.0.2
 Authors@R: person("Ousmane", "Ouedraogo", role = c("aut", "cre"),
-    email = "ousmane@anam.bf")
-Description: Ingests, parses, and exports rain gauge SMS messages from Google
-    Sheets. Supports incremental reading, CLICOM output, and FTP delivery.
+    email = "ouedraogo.ousmane@meteoburkina.bf")
+Description: Reads structured SMS messages forwarded to a Google Sheet by
+    field observers, detects and fixes malformed entries, parses valid
+    messages into tidy rainfall and agrometeorological observations, and
+    exports results in a format compatible with the CLIDATA climatological
+    database 
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports:
+    googledrive,
     googlesheets4,
     tibble,
+    tidyselect,
     dplyr, 
     keyring,
     purrr,
     rlang
-URL: https://github.com/oousmane/smscollectr
+URL: https://github.com/oousmane/smscollectr, https://oousmane.github.io/smscollectr/
 BugReports: https://github.com/oousmane/smscollectr/issues
+Depends: 
+    R (>= 4.1.0)

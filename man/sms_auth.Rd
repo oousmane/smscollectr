@@ -4,22 +4,27 @@
 \alias{sms_auth}
 \title{Authenticate with Google Sheets}
 \usage{
-sms_auth(path = NULL, email = NULL, cache = "~/.smscollectr_secrets")
+sms_auth(email = NULL, cache = "~/.smscollectr/oauth")
 }
 \arguments{
-\item{path}{\code{character(1)} or \code{NULL}. Path to a service account JSON key
-file. If \code{NULL}, OAuth is used.}
+\item{email}{\code{character(1)} or \code{NULL}. Google account email for OAuth
+fallback when no keyring credentials are found.}
 
-\item{email}{\code{character(1)} or \code{NULL}. Google account email for OAuth.}
-
-\item{cache}{\code{character(1)}. Path to the OAuth token cache directory.
-Default is \code{"~/.smscollectr_secrets"}.}
+\item{cache}{\code{character(1)}. OAuth token cache directory. Default
+\verb{~/.smscollectr/oauth}.}
 }
 \value{
 Invisibly returns \code{TRUE}.
 }
 \description{
-Wraps \code{\link[googlesheets4:gs4_auth]{googlesheets4::gs4_auth()}}. Call once per session before using
-any Sheet-related functions. Uses a service account JSON if provided,
-otherwise falls back to OAuth with a persistent cache.
+Forces re-authentication. Useful when the token has expired or when
+switching accounts. If keyring credentials are available they are used;
+otherwise falls back to OAuth with the provided email.
+}
+\examples{
+\dontrun{
+sms_auth()                            # service account via keyring
+sms_auth(email = "you@gmail.com")     # OAuth fallback
+}
+
 }

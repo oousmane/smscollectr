@@ -2,40 +2,40 @@
 % Please edit documentation in R/sms.R
 \name{parse_sms}
 \alias{parse_sms}
-\title{Parse a vector of rain gauge SMS messages
-Duplicate observations (same station, year, month, day) are
-deduplicated, keeping the last occurrence.}
+\title{Parse a vector of SMS messages (all formats)}
 \usage{
 parse_sms(texts)
 }
 \arguments{
-\item{texts}{\code{character} vector of SMS strings.}
+\item{texts}{\code{character} vector of raw SMS strings.}
 }
 \value{
-A \code{\link[tibble:tibble]{tibble::tibble()}} with columns:
+A named list with two \code{\link[tibble:tibble]{tibble::tibble()}} elements:
 \describe{
-\item{eg_gh_id}{\code{character}. Station identifier (6 digits + type code).}
-\item{year}{\code{integer}. Observation year.}
-\item{month}{\code{integer}. Observation month.}
-\item{day}{\code{integer}. Observation day.}
-\item{value}{\code{numeric}. Rainfall in mm (raw value divided by 10).
-\code{0} for trace rainfall.}
-\item{flag}{\code{character}. \code{"T"} for trace rainfall, \code{NA} otherwise.}
+\item{\code{gauge}}{Parsed rain gauge observations with columns \code{eg_gh_id},
+\code{year}, \code{month}, \code{day}, \code{time}, \code{eg_el_abbreviation}, \code{value},
+\code{flag}.}
+\item{\code{agro}}{Parsed agrometeorological observations with the same
+columns.}
 }
+Each tibble is empty (but correctly typed) if no valid messages of that
+format are found.
 }
 \description{
-Parse a vector of rain gauge SMS messages
-Duplicate observations (same station, year, month, day) are
-deduplicated, keeping the last occurrence.
+Detects the format of each SMS message, dispatches to the appropriate
+parser, and returns a named list of two tibbles — one per format.
 }
-\examples{
-\dontrun{
-msgs <- c(
-  "200001S, 03-06-2026, 125",
-  "200002P, 04-06-2026, TR",
-  "invalid message"
-)
-parse_sms(msgs)
+\details{
+Supported formats:
+\describe{
+\item{\code{gauge}}{Format A — Rain gauge: \code{"200001S, 03-06-2026, 125"}.}
+\item{\code{agro}}{Format B — Agrometeorological: multi-line \verb{[STATION]\\n[DD]\\nKey= val}.}
 }
 
+Invalid or unrecognised messages are silently dropped. Duplicates
+(same \code{eg_gh_id}, \code{year}, \code{month}, \code{day}, \code{eg_el_abbreviation}) keep
+the last occurrence within each tibble.
+}
+\seealso{
+\code{\link[=read_sms]{read_sms()}}
 }

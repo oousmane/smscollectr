@@ -15,7 +15,7 @@ A \code{logical} vector the same length as \code{text}.
 }
 \description{
 A valid SMS starts with a 6-digit station identifier followed by one of
-\code{P}, \code{S}, \code{A}, or \code{C}, then a comma (e.g. \code{"200001S, 03-06-2026, 125"}).
+\code{P}, \code{A}, or \code{C}, then a comma (e.g. \code{"200001S, 03-06-2026, 125"}).
 }
 \examples{
 is_gauge_sms("200001S, 03-06-2026, 125")  # TRUE
