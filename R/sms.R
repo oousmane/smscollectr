@@ -1,7 +1,7 @@
 #' Check whether a string is a valid rain gauge SMS
 #'
 #' A valid SMS starts with a 6-digit station identifier followed by one of
-#' `P`, `S`, `A`, or `C`, then a comma (e.g. `"200001S, 03-06-2026, 125"`).
+#' `P`, `A`, or `C`, then a comma (e.g. `"200001S, 03-06-2026, 125"`).
 #'
 #' @param text `character` vector of SMS strings to check. `NULL` is accepted
 #'   and returns `logical(0)`.
@@ -17,7 +17,7 @@
 is_gauge_sms <- function(text = NULL) {
   if (is.null(text)) return(logical(0))
   if (!is.character(text)) stop("`text` must be character")
-  grepl("^[0-9]{6}[PSAC],", trimws(text))
+  grepl("^[0-9]{6}\\s*[PAC]\\s*,", trimws(text))
 }
 
 #' Check whether a string is a valid agrometeorological SMS
@@ -89,7 +89,7 @@ is_agro_sms <- function(text = NULL) {
   sms_parts <- trimws(strsplit(txt, ",")[[1]])
   if (length(sms_parts) < 3) return(na_row)
   
-  d <- as.Date(sms_parts[2], "%d-%m-%Y")
+  d <- as.Date(sms_parts[2], "%d-%m-%Y")-1
   if (is.na(d)) return(na_row)
   
   if (tolower(sms_parts[3]) == "tr") {
@@ -188,10 +188,10 @@ is_agro_sms <- function(text = NULL) {
 #'   variable (15 rows for a complete message). Returns a single-row
 #'   all-`NA` tibble when parsing fails.
 #'
-#' @seealso [to_station_id()], [to_element_id()],
-#'   [parse_sms()]
+#' @seealso [to_station_id()], [to_element_id()], [parse_sms()]
 #'
 #' @keywords internal
+#' 
 .parse_agro_sms <- function(txt) {
   na_row <- tibble::tibble(
     eg_gh_id           = NA_character_,
@@ -213,8 +213,7 @@ is_agro_sms <- function(text = NULL) {
   lines <- lines[nchar(lines) > 0]
   
   # Line 1 — station name
-  station_raw <- trimws(lines[1])
-  eg_gh_id    <- to_station_id(station_raw)
+  eg_gh_id <- to_station_id(trimws(lines[1]))
   
   # Line 2 — full date DD-MM-YYYY
   d <- as.Date(trimws(lines[2]), "%d-%m-%Y")
@@ -231,23 +230,23 @@ is_agro_sms <- function(text = NULL) {
     trimws(sub(pattern, "\\1", match[1]))
   }
   
-  # Variable specifications: internal name → SMS key + divisor
+  # Variable specifications: internal name -> SMS key + divisor
   vars <- list(
-    Tn       = list(key = "Tn",    divisor = 10),
-    Tx       = list(key = "Tx",    divisor = 10),
-    TnSol    = list(key = "TnSol", divisor = 10),
-    TxSol    = list(key = "TxSol", divisor = 10),
-    `T-10`   = list(key = "T-10",  divisor = 10),
-    `T-20`   = list(key = "T-20",  divisor = 10),
-    `T-50`   = list(key = "T-50",  divisor = 10),
-    Un       = list(key = "Un",    divisor = 1),
-    Ux       = list(key = "Ux",    divisor = 1),
-    Vent     = list(key = "Vent",  divisor = 1),
-    Inso     = list(key = "Inso",  divisor = 10),
-    e        = list(key = "e",     divisor = 10),
-    BAC      = list(key = "BAC",   divisor = 10),
-    PICHE    = list(key = "PICHE", divisor = 10),
-    RA       = list(key = "RA",    divisor = 10)
+    Tn     = list(key = "Tn",    divisor = 10),
+    Tx     = list(key = "Tx",    divisor = 10),
+    TnSol  = list(key = "TnSol", divisor = 10),
+    TxSol  = list(key = "TxSol", divisor = 10),
+    `T-10` = list(key = "T-10",  divisor = 10),
+    `T-20` = list(key = "T-20",  divisor = 10),
+    `T-50` = list(key = "T-50",  divisor = 10),
+    Un     = list(key = "Un",    divisor = 1),
+    Ux     = list(key = "Ux",    divisor = 1),
+    Vent   = list(key = "Vent",  divisor = 1),
+    Inso   = list(key = "Inso",  divisor = 10),
+    e      = list(key = "e",     divisor = 10),
+    BAC    = list(key = "BAC",   divisor = 10),
+    PICHE  = list(key = "PICHE", divisor = 10),
+    RA     = list(key = "RA",    divisor = 10)
   )
   
   # Parse all variables into a long tibble — one row per variable
@@ -307,6 +306,7 @@ is_agro_sms <- function(text = NULL) {
 #' @importFrom dplyr bind_rows filter if_all everything group_by slice_tail
 #'   ungroup mutate
 #' @export
+
 parse_sms <- function(texts) {
   if (!is.character(texts)) stop("`texts` must be a character vector.", call. = FALSE)
   
@@ -341,13 +341,26 @@ parse_sms <- function(texts) {
     return(list(gauge = empty(), agro = empty()))
   }
   
+  # Fix only gauge SMS — never touch agro
+  gauge_mask <- (is_gauge_sms(texts) | is_bad_sms(texts, gauge = TRUE)) &
+    !is_agro_sms(texts)
+  texts <- ifelse(gauge_mask, fix_sms(texts), texts)
+  texts <- texts[!is.na(texts)]
+  
+  if (length(texts) == 0) {
+    return(list(gauge = empty(), agro = empty()))
+  }
+  
   gauge_rows <- purrr::map(texts[is_gauge_sms(texts)], function(txt) {
     .parse_sms(txt) |>
       dplyr::mutate(
         time               = "06:00",
         eg_el_abbreviation = "RR"
-      ) |> 
-      dplyr::select(.data$eg_gh_id, .data$year, .data$month,.data$day, .data$time,.data$eg_el_abbreviation, .data$value, .data$flag)
+      ) |>
+      dplyr::select(
+        .data$eg_gh_id, .data$year, .data$month, .data$day,
+        .data$time, .data$eg_el_abbreviation, .data$value, .data$flag
+      )
   }) |>
     purrr::compact() |>
     dplyr::bind_rows()
@@ -360,4 +373,136 @@ parse_sms <- function(texts) {
     gauge = .dedup(if (nrow(gauge_rows) == 0) empty() else gauge_rows),
     agro  = .dedup(if (nrow(agro_rows)  == 0) empty() else agro_rows)
   )
+}
+
+
+#' Attempt to fix a malformed SMS
+#'
+#' Extracts the last valid line, cleans the station ID, and normalises the
+#' rainfall value by stripping non-numeric characters. Special values are
+#' handled as follows: a "no rain" mention is converted to \code{"0"}, and
+#' a trace rainfall (\code{TR}) is normalised to \code{"TR"}. Returns the
+#' canonical form \code{"XXXXXXP, DD-MM-YYYY, VVV"}.
+#'
+#' @param x A character string containing the SMS text (possibly multi-line).
+#' @param gauge Logical. If \code{TRUE} (default), fixes against gauge SMS
+#'   rules via \code{is_gauge_sms()}. If \code{FALSE}, throws an error as
+#'   non-gauge fixing is not yet implemented.
+#'
+#' @return A character string in the form \code{"ID, DD-MM-YYYY, value"}, or
+#'   \code{NA_character_} if the SMS cannot be fixed.
+#'
+#' @examples
+#' fix_sms("200068P, 24-06-2026, 12,6")                        # "200068P, 24-06-2026, 126"
+#' fix_sms("200068P, 24-06-2026, 12mm")                        # "200068P, 24-06-2026, 12"
+#' fix_sms("200053A , 30-06-2026, 1.0")                        # "200053A, 30-06-2026, 10"
+#' fix_sms("200068P, 24-06-2026, TR")                          # "200068P, 24-06-2026, TR"
+#' fix_sms("200068P, 24-06-2026, pas de pluie")                # "200068P, 24-06-2026, 0"
+#' fix_sms("200034P,23-06-2026,boussouma n'a pas eu de pluie") # "200034P, 23-06-2026, 0"
+#' fix_sms("32mm enregistré le 12/06/26")                      # NA
+#'
+#' @seealso [is_bad_sms()], [is_gauge_sms()], [is_no_rain()]
+#'
+#' @export
+
+fix_sms <- function(x, gauge = TRUE) {
+  if (gauge) {
+    if (length(x) > 1) return(vapply(x, fix_sms, character(1), gauge = gauge))
+    if (!is_gauge_sms(x)) return(NA_character_)
+    
+    lines <- trimws(strsplit(x, "\n")[[1]])
+    lines <- lines[nzchar(lines)]
+    last  <- lines[length(lines)]
+    parts <- trimws(strsplit(last, ",")[[1]])
+    
+    id       <- gsub("\\s+", "", parts[1])
+    date_raw <- trimws(parts[2])
+    
+    # Extract valid date prefix + leftover digits
+    date  <- regmatches(date_raw, regexpr("^\\d{2}-\\d{2}-\\d{4}", date_raw))
+    extra <- gsub("^\\d{2}-\\d{2}-\\d{4}", "", date_raw)
+    
+    if (length(date) == 0) return(NA_character_)
+    
+    reste <- trimws(paste(c(extra, parts[-(1:2)]), collapse = ","))
+    
+    val <- if (is_no_rain(reste)) "0" else
+      if (grepl("^=?TR$", reste, ignore.case = TRUE)) "TR" else {
+        v <- paste(gsub("[^0-9]", "", c(extra, parts[-(1:2)])), collapse = "")
+        if (!nzchar(v)) return(NA_character_)
+        v
+      }
+    
+    return(paste(id, date, val, sep = ", "))
+  }
+  
+  stop("non-gauge SMS fixing is not yet implemented.", call. = FALSE)
+}
+#' Check whether a string mentions no rainfall
+#'
+#' Uses both exact regex and fuzzy matching to catch common misspellings
+#' of the French phrase "pas de pluie" (no rain).
+#'
+#' @param x A character string.
+#'
+#' @return A logical scalar.
+#'
+#' @examples
+#' is_no_rain("pas de pluie")                        # TRUE
+#' is_no_rain("Pa de plu")                           # TRUE
+#' is_no_rain("boussouma n'a pas eu de pluie")       # TRUE
+#' is_no_rain("126")                                  # FALSE
+#'
+#' @export
+is_no_rain <- function(x) {
+  grepl("pas\\s*de\\s*plu", x, ignore.case = TRUE) ||
+    agrepl("pas de pluie", x, ignore.case = TRUE, max.distance = 0.3)
+}
+
+
+#' Check whether an SMS is malformed
+#'
+#' Validates an SMS against format-specific rules. Currently only gauge SMS
+#' validation is implemented. A valid gauge SMS has exactly one line, a
+#' station ID matching \code{[0-9]{6}[PAC]}, a date in \code{DD-MM-YYYY}
+#' format, and a value of 1-4 digits or a "no rain" mention.
+#'
+#' @param x A character string containing the SMS text.
+#' @param gauge Logical. If \code{TRUE} (default), validates via
+#'   \code{is_gauge_sms()} rules.
+#'
+#' @return A logical scalar. \code{TRUE} if malformed, \code{FALSE} if valid.
+#'
+#' @examples
+#' is_bad_sms("200068P, 24-06-2026, 21")            # FALSE
+#' is_bad_sms("200068P, 24-06-2026, 12mm")           # TRUE
+#' is_bad_sms("200068P, 24-06-2026, pas de pluie")   # FALSE
+#' is_bad_sms("200068P, 24-06-2026,")                # TRUE
+#'
+#' @export
+is_bad_sms <- function(x, gauge = TRUE) {
+  if (length(x) > 1) return(vapply(x, is_bad_sms, logical(1), gauge = gauge))
+  
+  if (gauge) {
+    if (!is_gauge_sms(x)) return(TRUE)
+    
+    lines <- trimws(strsplit(x, "\n")[[1]])
+    lines <- lines[nzchar(lines)]
+    
+    if (length(lines) != 1) return(TRUE)
+    
+    parts <- trimws(strsplit(lines, ",")[[1]])
+    
+    if (length(parts) != 3) return(TRUE)
+    
+    return(
+      !grepl("^\\d{2}-\\d{2}-\\d{4}$", parts[2]) ||
+        (!grepl("^\\d{1,4}$", parts[3])             &&
+           !grepl("^=?TR$", parts[3], ignore.case = TRUE) &&
+           !is_no_rain(parts[3]))
+    )
+  }
+  
+  # agro
+  !is_agro_sms(x)
 }

@@ -1,87 +1,102 @@
 # R/auth.R
-
 .auth_state <- new.env(parent = emptyenv())
 
-.default_auth_path <- function() {
-  f <- path.expand("~/.smscollectr/config_auth.json")
-  if (file.exists(f)) f else NA_character_
-}
 
-
-#' Save service account credentials
+#' Save service account credentials to the system keyring
 #'
-#' Copies the JSON key file to `~/.smscollectr/config_auth.json`.
-#' After this, [sms_auth()] can be called without arguments in any session.
+#' Reads a service account JSON key file and stores its contents securely in
+#' the system keyring. After this, authentication is fully automatic, no
+#' arguments needed in any session.
 #'
 #' @param path `character(1)`. Path to the service account JSON key file.
 #' @param overwrite `logical(1)`. Overwrite if already exists. Default `FALSE`.
 #'
-#' @return Invisibly returns the destination path.
+#' @return Invisibly returns `TRUE`.
+#'
+#' @examples
+#' \dontrun{
+#' config_auth("~/Downloads/key.json")  # once
+#' }
+#'
 #' @export
 config_auth <- function(path, overwrite = FALSE) {
-  
   if (!file.exists(path)) stop("File not found: ", path)
   
-  dest_dir  <- path.expand("~/.smscollectr")
-  dest_file <- file.path(dest_dir, "config_auth.json")
+  already <- tryCatch(
+    { keyring::key_get("smscollectr", "service_account"); TRUE },
+    error = function(e) FALSE
+  )
   
-  if (!dir.exists(dest_dir)) {
-    dir.create(dest_dir, recursive = TRUE, mode = "0700")
-    message("Created directory: ", dest_dir)
+  if (already && !overwrite) {
+    message("Credentials already configured. Use overwrite = TRUE to update.")
+    return(invisible(TRUE))
   }
   
-  if (file.exists(dest_file) && !overwrite) {
-    message("config_auth.json already exists. Use overwrite = TRUE to update.")
-    return(invisible(dest_file))
-  }
+  json <- paste(readLines(path, warn = FALSE), collapse = "\n")
+  keyring::key_set_with_value("smscollectr", "service_account", json)
   
-  file.copy(path, dest_file, overwrite = overwrite)
-  Sys.chmod(dest_file, mode = "0600")
-  
-  message("Credentials saved to ", dest_file)
-  invisible(dest_file)
+  message("Credentials saved to system keyring.")
+  invisible(TRUE)
 }
 
 
 #' Authenticate with Google Sheets
 #'
-#' Wraps [googlesheets4::gs4_auth()] and [googledrive::drive_auth()].
-#' Call once per session before using any Sheet-related functions.
-#' If [config_auth()] has been run previously, no arguments are needed.
+#' Forces re-authentication. Useful when the token has expired or when
+#' switching accounts. If keyring credentials are available they are used;
+#' otherwise falls back to OAuth with the provided email.
 #'
-#' @param path `character(1)` or `NA`. Path to a service account JSON key file.
-#'   Defaults to `~/.smscollectr/config_auth.json` if it exists.
-#' @param email `character(1)` or `NULL`. Google account email for OAuth fallback.
-#' @param cache `character(1)`. OAuth token cache directory.
+#' @param email `character(1)` or `NULL`. Google account email for OAuth
+#'   fallback when no keyring credentials are found.
+#' @param cache `character(1)`. OAuth token cache directory. Default
+#'   `~/.smscollectr/oauth`.
 #'
 #' @return Invisibly returns `TRUE`.
+#'
+#' @examples
+#' \dontrun{
+#' sms_auth()                            # service account via keyring
+#' sms_auth(email = "you@gmail.com")     # OAuth fallback
+#' }
+#'
 #' @export
-sms_auth <- function(path  = .default_auth_path(),
-                     email = NULL,
-                     cache = "~/.smscollectr/oauth") {
+sms_auth <- function(email = NULL, cache = "~/.smscollectr/oauth") {
+  .auth_state$authenticated <- FALSE
+  .check_auth(email = email, cache = cache)
+}
+
+
+# Called internally by read_sms(), clean_sheet(), etc.
+.check_auth <- function(email = NULL, cache = "~/.smscollectr/oauth") {
+  if (isTRUE(.auth_state$authenticated) || googlesheets4::gs4_has_token()) {
+    return(invisible(NULL))
+  }
   
-  if (!is.na(path)) {
-    googlesheets4::gs4_auth(path = path)
-    googledrive::drive_auth(path = path)
+  json <- tryCatch(
+    keyring::key_get("smscollectr", "service_account"),
+    error = function(e) NULL
+  )
+  
+  if (!is.null(json)) {
+    tmp <- tempfile(fileext = ".json")
+    on.exit(unlink(tmp), add = TRUE)
+    writeLines(json, tmp)
+    googlesheets4::gs4_auth(path = tmp)
+    googledrive::drive_auth(path = tmp)
+  } else if (!is.null(email)) {
+    cache_dir <- path.expand(cache)
+    if (!dir.exists(cache_dir)) dir.create(cache_dir, recursive = TRUE, mode = "0700")
+    googlesheets4::gs4_auth(email = email, cache = cache_dir)
+    googledrive::drive_auth(email = email, cache = cache_dir)
   } else {
-    googlesheets4::gs4_auth(email = email, cache = cache)
-    googledrive::drive_auth(email = email, cache = cache)
+    stop(
+      "Not authenticated. Either:\n",
+      "  config_auth('key.json')            # once : saves to keyring\n",
+      "  sms_auth(email = 'you@gmail.com')  # OAuth fallback"
+    )
   }
   
   .auth_state$authenticated <- TRUE
   message("Authenticated with Google Sheets.")
   invisible(TRUE)
-}
-
-
-# Internal — called by read_sms(), clean_sheet(), etc.
-.check_auth <- function() {
-  if (!isTRUE(.auth_state$authenticated) &&
-      !googlesheets4::gs4_has_token()) {
-    stop(
-      "Not authenticated. Run sms_auth() first:\n",
-      "  config_auth('key.json')  # once — saves credentials\n",
-      "  sms_auth()               # each session"
-    )
-  }
 }

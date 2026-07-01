@@ -34,7 +34,6 @@ RA= NT
 }\if{html}{\out{</div>}}
 }
 \seealso{
-\code{\link[=to_station_id]{to_station_id()}}, \code{\link[=to_element_id]{to_element_id()}},
-\code{\link[=parse_sms]{parse_sms()}}
+\code{\link[=to_station_id]{to_station_id()}}, \code{\link[=to_element_id]{to_element_id()}}, \code{\link[=parse_sms]{parse_sms()}}
 }
 \keyword{internal}

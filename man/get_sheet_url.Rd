@@ -24,6 +24,10 @@ Raises an informative error if the key is not found.
 \dontrun{
 url <- get_sheet_url()
 read_sms(url)
+
+# Multiple sheets
+gauge_url <- get_sheet_url(key = "gauge_url")
+agro_url  <- get_sheet_url(key = "agro_url")
 }
 
 }

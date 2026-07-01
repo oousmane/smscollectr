@@ -4,7 +4,7 @@
 \alias{set_sheet_url}
 \title{Store a Google Sheet URL in the system credential store}
 \usage{
-set_sheet_url(url, key = "gs_url", service = "smscollectr")
+set_sheet_url(url, key = "gs_url", service = "smscollectr", overwrite = FALSE)
 }
 \arguments{
 \item{url}{\code{character(1)}. Full Google Sheet URL to store.}
@@ -14,6 +14,8 @@ Default is \code{"gs_url"}.}
 
 \item{service}{\code{character(1)}. Keyring service namespace.
 Default is \code{"smscollectr"}.}
+
+\item{overwrite}{\code{logical(1)}. Overwrite if already exists. Default \code{FALSE}.}
 }
 \value{
 Invisibly returns \code{key}.
@@ -26,6 +28,8 @@ written to disk in plain text, \code{.Renviron}, or any R script.
 \examples{
 \dontrun{
 set_sheet_url("https://docs.google.com/spreadsheets/d/SHEET_ID/edit")
+set_sheet_url("https://docs.google.com/spreadsheets/d/SHEET_ID/edit",
+              key = "agro_url")
 }
 
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/read_sms.R
 \name{read_sms}
 \alias{read_sms}
-\title{Read and parse SMS rain gauge entries from a Google Sheet}
+\title{Read and parse SMS messages from a Google Sheet}
 \usage{
 read_sms(sheet_url, sheet = 1, col = "sms")
 }
@@ -16,29 +16,38 @@ Default is \code{1} (first sheet).}
 containing SMS text. Default is \code{"sms"}.}
 }
 \value{
-A \code{\link[tibble:tibble]{tibble::tibble()}} with columns:
+A named list with four elements:
 \describe{
-\item{eg_gh_id}{\code{character}. Station identifier.}
-\item{eg_el_abbreviation}{\code{character}. Element code, always \code{"RR"}
-(rainfall).}
-\item{month}{\code{character}. Zero-padded month (\code{"01"} to \code{"12"}).}
-\item{day}{\code{character}. Zero-padded day (\code{"01"} to \code{"31"}).}
-\item{value}{\code{numeric}. Rainfall in mm.}
-\item{flag}{\code{character}. \code{"T"} for trace rainfall, \code{NA} otherwise.}
+\item{\code{gauge}}{\code{\link[tibble:tibble]{tibble::tibble()}} of parsed rain gauge observations
+with columns \code{eg_gh_id}, \code{year}, \code{month}, \code{day}, \code{time},
+\code{eg_el_abbreviation}, \code{value}, \code{flag}.}
+\item{\code{agro}}{\code{\link[tibble:tibble]{tibble::tibble()}} of parsed agrometeorological
+observations with the same columns.}
+\item{\code{bad}}{\code{\link[tibble:tibble]{tibble::tibble()}} — subset of the raw sheet rows
+whose SMS could not be parsed or fixed.}
+\item{\code{raw}}{\code{\link[tibble:tibble]{tibble::tibble()}} — the full raw sheet as read from
+Google Sheets, with list columns coerced to character.}
 }
-Returns an empty tibble with the correct column types if no valid SMS
-messages are found.
+\code{gauge} and \code{agro} are empty but correctly typed tibbles if no valid
+messages of that format are found.
 }
 \description{
-Reads SMS messages from a Google Sheet column, parses them into structured
-rainfall observations, deduplicates by station and date, and formats the
-result for ingestion into a climatological database.
+Reads raw SMS messages from a Google Sheet column, attempts to fix
+malformed gauge messages via \code{\link[=fix_sms]{fix_sms()}}, parses valid messages into
+structured observations via \code{\link[=parse_sms]{parse_sms()}}, and returns a named list
+with parsed data, malformed rows, and the raw sheet.
 }
 \examples{
 \dontrun{
-url <- "https://docs.google.com/spreadsheets/d/SHEET_ID/edit"
-read_sms(url)
-read_sms(url, sheet = "Saisie", col = "message")
+sms_auth()
+url <- get_sheet_url()
+result <- read_sms(url)
+result$gauge
+result$bad
 }
 
+}
+\seealso{
+\code{\link[=parse_sms]{parse_sms()}}, \code{\link[=fix_sms]{fix_sms()}}, \code{\link[=is_bad_sms]{is_bad_sms()}}, \code{\link[=sms_auth]{sms_auth()}},
+\code{\link[=get_sheet_url]{get_sheet_url()}}
 }
