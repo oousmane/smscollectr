@@ -25,7 +25,7 @@ structured text messages to a central Google Sheet.
 # How it works
 
 <figure>
-<img src="man/figures/workflow2.png" alt="Workflow" />
+<img src="man/figures/workflow3.png" alt="Workflow" />
 <figcaption aria-hidden="true">Workflow</figcaption>
 </figure>
 
