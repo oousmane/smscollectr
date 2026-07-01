@@ -35,5 +35,9 @@ get_sheet_url(key = "gs_url", service = "smscollectr")
 if (FALSE) { # \dontrun{
 url <- get_sheet_url()
 read_sms(url)
+
+# Multiple sheets
+gauge_url <- get_sheet_url(key = "gauge_url")
+agro_url  <- get_sheet_url(key = "agro_url")
 } # }
 ```

@@ -11,8 +11,8 @@
 <script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Collect and Process Rain Gauge SMS Data">
-<meta name="description" content="Ingests, parses, and exports rain gauge SMS messages from Google Sheets. Supports incremental reading, CLICOM output, and FTP delivery.">
-<meta property="og:description" content="Ingests, parses, and exports rain gauge SMS messages from Google Sheets. Supports incremental reading, CLICOM output, and FTP delivery.">
+<meta name="description" content="Reads structured SMS messages forwarded to a Google Sheet by field observers, detects and fixes malformed entries, parses valid messages into tidy rainfall and agrometeorological observations, and exports results in a format compatible with the CLIDATA climatological database">
+<meta property="og:description" content="Reads structured SMS messages forwarded to a Google Sheet by field observers, detects and fixes malformed entries, parses valid messages into tidy rainfall and agrometeorological observations, and exports results in a format compatible with the CLIDATA climatological database">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">smscollectr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,6 +32,7 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -52,110 +53,159 @@
 <!-- badges: end -->
 <p><code>smscollectr</code> is an R package designed for the collection, parsing, and export of meteorological observations transmitted via SMS. It is built for operational use within ANAM-BF (Agence Nationale de la Météorologie du Burkina Faso), where field observers send daily measurements as structured text messages to a central Google Sheet.</p>
 <blockquote>
-<p><strong>Scope notice</strong> This package is purpose-built for a specific operational context at ANAM-BF: fixed SMS formats, a CLIDATA-compatible output schema, and a Google Sheets-based collection pipeline. It is <strong>not a general-purpose SMS parsing library</strong>. That said, the core functions are deliberately modular and can serve as a starting point for adaptation to other networks, SMS formats, or database targets with minimal effort.</p>
+<p><strong>Scope notice</strong></p>
+<p>This package is purpose-built for a specific operational context at ANAM-BF: fixed SMS formats, a CLIDATA-compatible output schema, and a Google Sheets-based collection pipeline. It is <strong>not a general-purpose SMS parsing library</strong>. That said, the core functions are deliberately modular and can serve as a starting point for adaptation to other networks, SMS formats, or database targets with minimal effort.</p>
 </blockquote>
-<div class="section level2">
-<h2 id="how-it-works">How it works<a class="anchor" aria-label="anchor" href="#how-it-works"></a>
-</h2>
-<figure><img src="reference/figures/workflow2.png" alt="Workflow"><figcaption aria-hidden="true">
+</div>
+<div class="section level1">
+<h1 id="how-it-works">How it works<a class="anchor" aria-label="anchor" href="#how-it-works"></a>
+</h1>
+<figure><img src="reference/figures/workflow3.png" alt="Workflow"><figcaption aria-hidden="true">
 Workflow
 </figcaption></figure><p>Two SMS formats are supported and automatically detected:</p>
 <ul>
 <li>
-<strong>Format Gauge</strong> — rain gauge observations: <code>200001S, 03-06-2026, 125</code>
+<p><strong>Format Gauge</strong> — rain gauge observations</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="dv">200001</span>S, <span class="dv">03-06-2026</span>, <span class="dv">125</span></span></code></pre></div>
 </li>
 <li>
-<strong>Format Agro</strong> — agrometeorological station observations: multi-line message with station name, full date, and key=value pairs</li>
+<p><strong>Format Agro</strong> — agrometeorological station observations</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>STATION<span class="sc">-</span>NAME</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="dv">03-06-2026</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>Tn<span class="ot">=</span><span class="dv">305</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>Tx<span class="ot">=</span><span class="dv">438</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>...</span></code></pre></div>
+</li>
 </ul>
-<p><code><a href="reference/parse_sms.html">parse_sms()</a></code> returns a <strong>named list of two tibbles</strong> — one per format — so each can be written to its own CSV for CLIDATA import.</p>
+<p><code><a href="reference/parse_sms.html">parse_sms()</a></code> returns a <strong>named list of two tibbles</strong>, one for each SMS format, making it straightforward to export each dataset separately for CLIDATA.</p>
+<div class="section level2">
+<h2 id="processing-workflow">Processing workflow<a class="anchor" aria-label="anchor" href="#processing-workflow"></a>
+</h2>
 <ol style="list-style-type: decimal">
-<li>Field observers send a structured SMS to a shared number that forwards messages to a Google Sheet.</li>
+<li><p>Field observers send structured SMS messages to a shared phone number.</p></li>
+<li><p>Messages are automatically forwarded to a Google Sheet.</p></li>
 <li>
-<code><a href="reference/read_sms.html">read_sms()</a></code> reads, validates, parses all messages, and returns a named list <code>$gauge</code> / <code>$agro</code>.</li>
+<p><code><a href="reference/read_sms.html">read_sms()</a></code>:</p>
+<ul>
+<li>downloads the sheet,</li>
+<li>validates SMS messages,</li>
+<li>repairs malformed gauge messages using <code><a href="reference/fix_sms.html">fix_sms()</a></code>,</li>
+<li>parses all valid observations.</li>
+</ul>
+</li>
 <li>
-<code>write_csv()</code> exports each tibble as a CSV formatted for direct ingestion into CLIDATA.</li>
-<li>
-<code><a href="reference/clean_sheet.html">clean_sheet()</a></code> wipes the sheet clean after a successful export.</li>
+<p>The function returns:</p>
+<ul>
+<li><code>$gauge</code></li>
+<li><code>$agro</code></li>
+<li><code>$bad</code></li>
+<li><code>$raw</code></li>
+</ul>
+</li>
+<li><p><code>write_csv()</code> exports CLIDATA-compatible CSV files.</p></li>
+<li><p><code><a href="reference/clean_sheet.html">clean_sheet()</a></code> clears the Google Sheet after a successful import.</p></li>
 </ol>
 </div>
-<div class="section level2">
-<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
-</h2>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"oousmane/smscollectr"</span>, auth_token <span class="op">=</span> <span class="st">"ghp_xxxxxxxxxxxx"</span><span class="op">)</span></span></code></pre></div>
 </div>
-<div class="section level2">
-<h2 id="setup-run-once-per-machine">Setup (run once per machine)<a class="anchor" aria-label="anchor" href="#setup-run-once-per-machine"></a>
-</h2>
-<p>Two things need to be configured once before using the package: Google Sheets authentication and the Sheet URL. Both are stored securely in the system credential store and never need to be set again.</p>
-<div class="section level3">
-<h3 id="id_1-google-sheets-authentication">1. Google Sheets authentication<a class="anchor" aria-label="anchor" href="#id_1-google-sheets-authentication"></a>
-</h3>
-<p><code>smscollectr</code> does not authenticate automatically on load — you must call <code><a href="reference/sms_auth.html">sms_auth()</a></code> explicitly at the start of each session. Two modes are supported:</p>
-<p><strong>OAuth</strong> (interactive — suitable for desktop use):</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/oousmane/smscollectr" class="external-link">smscollectr</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Run once interactively — opens a browser for Google login.</span></span>
-<span><span class="co"># The token is cached and reused silently in future sessions.</span></span>
-<span><span class="fu"><a href="reference/sms_auth.html">sms_auth</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Service account</strong> (non-interactive — recommended for servers and automated pipelines):</p>
+<div class="section level1">
+<h1 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h1>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"oousmane/smscollectr"</span>,</span>
+<span>         auth_token <span class="op">=</span> <span class="st">"ghp_xxxxxxxxxxxx"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level1">
+<h1 id="initial-setup-run-once-per-machine">Initial setup (run once per machine)<a class="anchor" aria-label="anchor" href="#initial-setup-run-once-per-machine"></a>
+</h1>
+<p>Two items must be configured only once:</p>
+<ul>
+<li>Google Sheets authentication</li>
+<li>Google Sheet URL</li>
+</ul>
+<p>Both are securely stored in the system credential store.</p>
+<div class="section level2">
+<h2 id="id_1-google-sheets-authentication">1. Google Sheets authentication<a class="anchor" aria-label="anchor" href="#id_1-google-sheets-authentication"></a>
+</h2>
+<div class="section level3">
+<h3 id="service-account-recommended">Service account (recommended)<a class="anchor" aria-label="anchor" href="#service-account-recommended"></a>
+</h3>
+<p>Suitable for production servers and automated workflows.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/oousmane/smscollectr" class="external-link">smscollectr</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Path to the JSON key file downloaded from Google Cloud Console.</span></span>
-<span><span class="co"># The Sheet must be shared with the service account email.</span></span>
-<span><span class="fu"><a href="reference/sms_auth.html">sms_auth</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"/secure/path/service-account.json"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="reference/config_auth.html">config_auth</a></span><span class="op">(</span><span class="st">"path/to/service-account.json"</span><span class="op">)</span></span></code></pre></div>
+<p>The Google Sheet must be shared with the service account email contained in the JSON file.</p>
+<p>After configuration, authentication is completely automatic.</p>
+<p>No call to <code><a href="reference/sms_auth.html">sms_auth()</a></code> is required.</p>
+</div>
+<div class="section level3">
+<h3 id="oauth-interactive">OAuth (interactive)<a class="anchor" aria-label="anchor" href="#oauth-interactive"></a>
+</h3>
+<p>For desktop use.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/sms_auth.html">sms_auth</a></span><span class="op">(</span>email <span class="op">=</span> <span class="st">"you@gmail.com"</span><span class="op">)</span></span></code></pre></div>
 <blockquote>
-<p>A service account never expires and requires no browser interaction — it is the preferred solution for operational deployments.</p>
+<p>A service account never expires and requires no browser interaction, making it the preferred option for operational deployments.</p>
 </blockquote>
 </div>
-<div class="section level3">
-<h3 id="id_2-store-the-sheet-url-securely">2. Store the Sheet URL securely<a class="anchor" aria-label="anchor" href="#id_2-store-the-sheet-url-securely"></a>
-</h3>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Run once — stores the URL in the system keyring (macOS Keychain,</span></span>
-<span><span class="co"># Windows Credential Manager, or Linux Secret Service).</span></span>
-<span><span class="co"># Never saved in plain text, .Renviron, or any script.</span></span>
-<span><span class="fu"><a href="reference/set_sheet_url.html">set_sheet_url</a></span><span class="op">(</span><span class="st">"https://docs.google.com/spreadsheets/d/SHEET_ID/edit"</span><span class="op">)</span></span></code></pre></div>
-<p>After this, <code><a href="reference/get_sheet_url.html">get_sheet_url()</a></code> retrieves it anywhere in your code without exposing the URL.</p>
-<hr>
-</div>
 </div>
 <div class="section level2">
-<h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
+<h2 id="id_2-store-the-google-sheet-url">2. Store the Google Sheet URL<a class="anchor" aria-label="anchor" href="#id_2-store-the-google-sheet-url"></a>
 </h2>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/set_sheet_url.html">set_sheet_url</a></span><span class="op">(</span></span>
+<span>  <span class="st">"https://docs.google.com/spreadsheets/d/SHEET_ID/edit"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The URL is stored securely in the operating system keyring.</p>
+<p>Retrieve it anywhere using</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/get_sheet_url.html">get_sheet_url</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level1">
+<h1 id="quick-start">Quick start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
+</h1>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/oousmane/smscollectr" class="external-link">smscollectr</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Authenticate (once per session)</span></span>
-<span><span class="fu"><a href="reference/sms_auth.html">sms_auth</a></span><span class="op">(</span><span class="op">)</span>                                      <span class="co"># OAuth</span></span>
-<span><span class="co"># sms_auth(path = "/secure/path/key.json")      # Service account</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_sms.html">read_sms</a></span><span class="op">(</span></span>
+<span>  sheet_url <span class="op">=</span> <span class="fu"><a href="reference/get_sheet_url.html">get_sheet_url</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 1. Read and parse SMS entries</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_sms.html">read_sms</a></span><span class="op">(</span>sheet_url <span class="op">=</span> <span class="fu"><a href="reference/get_sheet_url.html">get_sheet_url</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">result</span><span class="op">$</span><span class="va">gauge</span></span>
+<span><span class="va">result</span><span class="op">$</span><span class="va">agro</span></span>
+<span><span class="va">result</span><span class="op">$</span><span class="va">bad</span></span>
+<span><span class="va">result</span><span class="op">$</span><span class="va">raw</span></span>
 <span></span>
-<span><span class="co"># 2. Export for CLIDATA import — one file per format</span></span>
-<span><span class="fu">readr</span><span class="fu">::</span><span class="fu"><a href="https://readr.tidyverse.org/reference/write_delim.html" class="external-link">write_csv</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">gauge</span>, <span class="st">"export_gauge.csv"</span>, na <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
-<span><span class="fu">readr</span><span class="fu">::</span><span class="fu"><a href="https://readr.tidyverse.org/reference/write_delim.html" class="external-link">write_csv</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">agro</span>,  <span class="st">"export_agro.csv"</span>,  na <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span><span class="fu">readr</span><span class="fu">::</span><span class="fu"><a href="https://readr.tidyverse.org/reference/write_delim.html" class="external-link">write_csv</a></span><span class="op">(</span></span>
+<span>  <span class="va">result</span><span class="op">$</span><span class="va">gauge</span>,</span>
+<span>  <span class="st">"export_gauge.csv"</span>,</span>
+<span>  na <span class="op">=</span> <span class="st">""</span></span>
+<span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 3. Clear the sheet after a successful export</span></span>
-<span><span class="fu"><a href="reference/clean_sheet.html">clean_sheet</a></span><span class="op">(</span>url <span class="op">=</span> <span class="fu"><a href="reference/get_sheet_url.html">get_sheet_url</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<hr>
+<span><span class="fu">readr</span><span class="fu">::</span><span class="fu"><a href="https://readr.tidyverse.org/reference/write_delim.html" class="external-link">write_csv</a></span><span class="op">(</span></span>
+<span>  <span class="va">result</span><span class="op">$</span><span class="va">agro</span>,</span>
+<span>  <span class="st">"export_agro.csv"</span>,</span>
+<span>  na <span class="op">=</span> <span class="st">""</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/clean_sheet.html">clean_sheet</a></span><span class="op">(</span></span>
+<span>  url <span class="op">=</span> <span class="fu"><a href="reference/get_sheet_url.html">get_sheet_url</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
 </div>
+<div class="section level1">
+<h1 id="sms-formats">SMS formats<a class="anchor" aria-label="anchor" href="#sms-formats"></a>
+</h1>
 <div class="section level2">
-<h2 id="sms-formats">SMS formats<a class="anchor" aria-label="anchor" href="#sms-formats"></a>
+<h2 id="format-gauge-rain-gauge">Format Gauge (Rain gauge)<a class="anchor" aria-label="anchor" href="#format-gauge-rain-gauge"></a>
 </h2>
-<div class="section level3">
-<h3 id="format-gauge--rain-gauge">Format Gauge — Rain gauge<a class="anchor" aria-label="anchor" href="#format-gauge--rain-gauge"></a>
-</h3>
-<div class="sourceCode" id="cb6"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>XXXXXXY, DD<span class="sc">-</span>MM<span class="sc">-</span>YYYY, ZZZ</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>XXXXXXY, DD<span class="sc">-</span>MM<span class="sc">-</span>YYYY, ZZZ</span></code></pre></div>
 <table class="table">
 <colgroup>
-<col width="33%">
-<col width="33%">
-<col width="33%">
+<col width="15%">
+<col width="68%">
+<col width="15%">
 </colgroup>
 <thead><tr>
 <th>Field</th>
@@ -164,234 +214,238 @@ Workflow
 </tr></thead>
 <tbody>
 <tr>
-<td><code>XXXXXXY</code></td>
-<td>6-digit station ID + type code (<code>P</code>, <code>S</code>, <code>A</code>, or <code>C</code>)</td>
-<td><code>200001S</code></td>
+<td>XXXXXXY</td>
+<td>6-digit station ID + type code (<code>P</code>, <code>S</code>, <code>A</code>, <code>C</code>)</td>
+<td>200001S</td>
 </tr>
 <tr>
-<td><code>DD-MM-YYYY</code></td>
+<td>DD-MM-YYYY</td>
 <td>Observation date</td>
-<td><code>03-06-2026</code></td>
+<td>03-06-2026</td>
 </tr>
 <tr>
-<td><code>ZZZ</code></td>
-<td>Rainfall in tenths of mm, or <code>TR</code> for trace</td>
-<td>
-<code>125</code> → 12.5 mm</td>
+<td>ZZZ</td>
+<td>Rainfall in tenths of mm, <code>TR</code>, or <code>pas de pluie</code>
+</td>
+<td>125</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Valid examples:</strong></p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="dv">200001</span>S, <span class="dv">03-06-2026</span>, <span class="dv">125</span>     → <span class="fl">12.5</span> mm at station <span class="dv">200001</span>S on <span class="dv">2026-06-03</span></span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="dv">200002</span>P, <span class="dv">04-06-2026</span>, TR      → trace rainfall at station <span class="dv">200002</span>P</span></code></pre></div>
+<div class="section level3">
+<h3 id="valid-examples">Valid examples<a class="anchor" aria-label="anchor" href="#valid-examples"></a>
+</h3>
+<div class="sourceCode" id="cb10"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="dv">200001</span>S, <span class="dv">03-06-2026</span>, <span class="dv">125</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>→ <span class="fl">12.5</span> mm</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="dv">200002</span>P, <span class="dv">04-06-2026</span>, TR</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>→ trace rainfall</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="dv">200003</span>P, <span class="dv">04-06-2026</span>, <span class="dv">0</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>→ no rainfall</span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="format-agro--agrometeorological-station">Format Agro — Agrometeorological station<a class="anchor" aria-label="anchor" href="#format-agro--agrometeorological-station"></a>
+<h3 id="malformed-but-automatically-fixed">Malformed but automatically fixed<a class="anchor" aria-label="anchor" href="#malformed-but-automatically-fixed"></a>
 </h3>
-<div class="sourceCode" id="cb8"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>STATION<span class="sc">-</span>NAME</span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>DD<span class="sc">-</span>MM<span class="sc">-</span>YYYY</span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>Tn<span class="ot">=</span> <span class="dv">305</span></span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>Tx<span class="ot">=</span> <span class="dv">438</span></span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>TnSol<span class="ot">=</span> <span class="dv">305</span></span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>TxSol<span class="ot">=</span> <span class="dv">525</span></span>
-<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>T<span class="dv">-10</span><span class="ot">=</span> <span class="dv">423</span></span>
-<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>T<span class="dv">-20</span><span class="ot">=</span> <span class="dv">406</span></span>
-<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>T<span class="dv">-50</span><span class="ot">=</span> <span class="dv">386</span></span>
-<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>Un<span class="ot">=</span> <span class="dv">15</span></span>
-<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>Ux<span class="ot">=</span> <span class="dv">54</span></span>
-<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>Vent<span class="ot">=</span> <span class="dv">03</span></span>
-<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a>Inso<span class="ot">=</span> <span class="dv">111</span></span>
-<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a>e<span class="ot">=</span> <span class="dv">211</span></span>
-<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a>BAC<span class="ot">=</span> <span class="dv">154</span></span>
-<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a>PICHE<span class="ot">=</span> <span class="dv">192</span></span>
-<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a>RA<span class="ot">=</span> NT</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="dv">200001</span>S, <span class="dv">03-06-2026</span>, <span class="dv">12</span>,<span class="dv">5</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>→ fixed to <span class="dv">125</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="dv">200001</span>S , <span class="dv">03-06-2026</span>, <span class="dv">12</span>mm</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>→ unit removed</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="dv">200001</span>S, <span class="dv">03-06-2026</span>, pas pluie</span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>→ fixed to <span class="dv">0</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="format-agro-agrometeorological-station">Format Agro (Agrometeorological station)<a class="anchor" aria-label="anchor" href="#format-agro-agrometeorological-station"></a>
+</h2>
+<div class="sourceCode" id="cb12"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>STATION<span class="sc">-</span>NAME</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>DD<span class="sc">-</span>MM<span class="sc">-</span>YYYY</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>Tn<span class="ot">=</span><span class="dv">305</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>Tx<span class="ot">=</span><span class="dv">438</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>TnSol<span class="ot">=</span><span class="dv">305</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>TxSol<span class="ot">=</span><span class="dv">525</span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>T<span class="dv">-10</span><span class="ot">=</span><span class="dv">423</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>T<span class="dv">-20</span><span class="ot">=</span><span class="dv">406</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>T<span class="dv">-50</span><span class="ot">=</span><span class="dv">386</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>Un<span class="ot">=</span><span class="dv">15</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>Ux<span class="ot">=</span><span class="dv">54</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>Vent<span class="ot">=</span><span class="dv">03</span></span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>Inso<span class="ot">=</span><span class="dv">111</span></span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a>e<span class="ot">=</span><span class="dv">211</span></span>
+<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a>BAC<span class="ot">=</span><span class="dv">154</span></span>
+<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a>PICHE<span class="ot">=</span><span class="dv">192</span></span>
+<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a>RA<span class="ot">=</span>NT</span></code></pre></div>
 <table class="table">
-<colgroup>
-<col width="16%">
-<col width="83%">
-</colgroup>
 <thead><tr>
-<th>Field</th>
+<th>Section</th>
 <th>Description</th>
 </tr></thead>
 <tbody>
 <tr>
 <td>Line 1</td>
-<td>Station name (plain text, matched against internal lookup)</td>
+<td>Station name</td>
 </tr>
 <tr>
 <td>Line 2</td>
-<td>Observation date <code>DD-MM-YYYY</code>
-</td>
+<td>Observation date</td>
 </tr>
 <tr>
 <td>Lines 3–17</td>
-<td>15 key=value pairs — one per observed variable</td>
+<td>Fifteen key=value observations</td>
 </tr>
 </tbody>
 </table>
-<p>Special values (case-insensitive): <code>TR</code>/<code>tr</code> → trace (value = 0, flag = <code>"T"</code>); <code>NT</code>/<code>nt</code> → not measured (value = 0); <code>xx</code>/<code>xxx</code> → missing (value = -9999, flag = <code>"M"</code>).</p>
-<p>Invalid messages are silently dropped and never appear in the output.</p>
-<hr>
-</div>
-</div>
-<div class="section level2">
-<h2 id="output-format">Output format<a class="anchor" aria-label="anchor" href="#output-format"></a>
-</h2>
-<p><code><a href="reference/read_sms.html">read_sms()</a></code> returns a named list with two tibbles:</p>
-<div class="section level3">
-<h3 id="gauge--rain-gauge-observations">
-<code>$gauge</code> — Rain gauge observations<a class="anchor" aria-label="anchor" href="#gauge--rain-gauge-observations"></a>
-</h3>
+<p>Special values</p>
 <table class="table">
-<colgroup>
-<col width="31%">
-<col width="15%">
-<col width="52%">
-</colgroup>
+<thead><tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>TR</code></td>
+<td>Trace rainfall (<code>flag="T"</code>)</td>
+</tr>
+<tr>
+<td><code>NT</code></td>
+<td>Not measured</td>
+</tr>
+<tr>
+<td>
+<code>xx</code> / <code>xxx</code>
+</td>
+<td>Missing value (<code>flag="M"</code>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section level1">
+<h1 id="output">Output<a class="anchor" aria-label="anchor" href="#output"></a>
+</h1>
+<p><code><a href="reference/read_sms.html">read_sms()</a></code> returns a named list containing four objects.</p>
+<div class="section level2">
+<h2 id="gauge">
+<code>$gauge</code><a class="anchor" aria-label="anchor" href="#gauge"></a>
+</h2>
+<table class="table">
 <thead><tr>
 <th>Column</th>
-<th>Type</th>
 <th>Description</th>
 </tr></thead>
 <tbody>
 <tr>
-<td><code>eg_gh_id</code></td>
-<td>character</td>
+<td>eg_gh_id</td>
 <td>Station identifier</td>
 </tr>
 <tr>
-<td><code>year</code></td>
-<td>integer</td>
-<td>Observation year</td>
+<td>year</td>
+<td>Year</td>
 </tr>
 <tr>
-<td><code>month</code></td>
-<td>integer</td>
-<td>Observation month</td>
+<td>month</td>
+<td>Month</td>
 </tr>
 <tr>
-<td><code>day</code></td>
-<td>integer</td>
-<td>Observation day</td>
+<td>day</td>
+<td>Day</td>
 </tr>
 <tr>
-<td><code>time</code></td>
-<td>character</td>
-<td>Observation time (always <code>"06:00"</code>)</td>
+<td>time</td>
+<td>Always <code>"06:00"</code>
+</td>
 </tr>
 <tr>
-<td><code>eg_el_abbreviation</code></td>
-<td>character</td>
-<td>Element code (always <code>"RR"</code>)</td>
+<td>eg_el_abbreviation</td>
+<td>Always <code>"RR"</code>
+</td>
 </tr>
 <tr>
-<td><code>value</code></td>
-<td>numeric</td>
-<td>Rainfall in mm (<code>0</code> for trace)</td>
+<td>value</td>
+<td>Rainfall (mm)</td>
 </tr>
 <tr>
-<td><code>flag</code></td>
-<td>character</td>
+<td>flag</td>
 <td>
-<code>"T"</code> for trace, <code>NA</code> otherwise</td>
+<code>"T"</code> for trace</td>
 </tr>
 </tbody>
 </table>
 </div>
-<div class="section level3">
-<h3 id="agro--agrometeorological-observations-15-rows-per-message">
-<code>$agro</code> — Agrometeorological observations (15 rows per message)<a class="anchor" aria-label="anchor" href="#agro--agrometeorological-observations-15-rows-per-message"></a>
-</h3>
+<div class="section level2">
+<h2 id="agro">
+<code>$agro</code><a class="anchor" aria-label="anchor" href="#agro"></a>
+</h2>
+<p>One row per observed variable.</p>
 <table class="table">
-<colgroup>
-<col width="33%">
-<col width="33%">
-<col width="33%">
-</colgroup>
 <thead><tr>
 <th>Column</th>
-<th>Type</th>
 <th>Description</th>
 </tr></thead>
 <tbody>
 <tr>
-<td><code>eg_gh_id</code></td>
-<td>character</td>
+<td>eg_gh_id</td>
 <td>Station identifier</td>
 </tr>
 <tr>
-<td><code>year</code></td>
-<td>integer</td>
-<td>Observation year</td>
+<td>year</td>
+<td>Year</td>
 </tr>
 <tr>
-<td><code>month</code></td>
-<td>integer</td>
-<td>Observation month</td>
+<td>month</td>
+<td>Month</td>
 </tr>
 <tr>
-<td><code>day</code></td>
-<td>integer</td>
-<td>Observation day</td>
+<td>day</td>
+<td>Day</td>
 </tr>
 <tr>
-<td><code>time</code></td>
-<td>character</td>
-<td>Observation time (always <code>"06:00"</code>)</td>
+<td>time</td>
+<td>Always <code>"06:00"</code>
+</td>
 </tr>
 <tr>
-<td><code>eg_el_abbreviation</code></td>
-<td>character</td>
-<td>CLIDATA element code (e.g. <code>"TMIN"</code>, <code>"RR"</code>, <code>"TS-10"</code>)</td>
+<td>eg_el_abbreviation</td>
+<td>CLIDATA element code</td>
 </tr>
 <tr>
-<td><code>value</code></td>
-<td>numeric</td>
-<td>Observed value in physical units</td>
+<td>value</td>
+<td>Physical value</td>
 </tr>
 <tr>
-<td><code>flag</code></td>
-<td>character</td>
+<td>flag</td>
 <td>
-<code>"T"</code> trace, <code>"M"</code> missing, <code>NA</code> otherwise</td>
+<code>"T"</code>, <code>"M"</code> or <code>NA</code>
+</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Example output:</strong></p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/parse_sms.html">parse_sms</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  <span class="st">"200023P, 11-05-2026, 101"</span>,</span>
-<span>  <span class="st">"DEDOUGOU\n11-05-2026\nTn= 305\nTx= 438\n..."</span></span>
-<span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $gauge</span></span>
-<span><span class="co">#&gt; # A tibble: 1 × 8</span></span>
-<span><span class="co">#&gt;   eg_gh_id  year month   day time  eg_el_abbreviation value flag</span></span>
-<span><span class="co">#&gt;   200023P   2026     5    11 06:00 RR                  10.1 NA</span></span>
-<span><span class="co">#&gt;</span></span>
-<span><span class="co">#&gt; $agro</span></span>
-<span><span class="co">#&gt; # A tibble: 15 × 8</span></span>
-<span><span class="co">#&gt;   eg_gh_id  year month   day time  eg_el_abbreviation value flag</span></span>
-<span><span class="co">#&gt;   200054S   2026     5    11 06:00 TMIN                30.5 NA</span></span>
-<span><span class="co">#&gt;   200054S   2026     5    11 06:00 TMAX                43.8 NA</span></span>
-<span><span class="co">#&gt;   ...</span></span></code></pre></div>
-<hr>
-</div>
 </div>
 <div class="section level2">
-<h2 id="security">Security<a class="anchor" aria-label="anchor" href="#security"></a>
+<h2 id="bad">
+<code>$bad</code><a class="anchor" aria-label="anchor" href="#bad"></a>
 </h2>
-<p>All sensitive credentials are stored in the <strong>system credential store</strong> via the <a href="https://keyring.r-lib.org/" class="external-link"><code>keyring</code></a> package — never in plain text, <code>.Renviron</code>, or committed scripts.</p>
+<p>Malformed SMS messages that could not be repaired.</p>
+<p>Original metadata are preserved for follow-up with observers.</p>
+</div>
+<div class="section level2">
+<h2 id="raw">
+<code>$raw</code><a class="anchor" aria-label="anchor" href="#raw"></a>
+</h2>
+<p>Complete raw Google Sheet restricted to messages originating from numeric senders.</p>
+<p>Useful for auditing and archiving.</p>
+</div>
+</div>
+<div class="section level1">
+<h1 id="security">Security<a class="anchor" aria-label="anchor" href="#security"></a>
+</h1>
+<p>Sensitive information is stored using the <strong>keyring</strong> package and never written to plain text files.</p>
 <table class="table">
-<colgroup>
-<col width="33%">
-<col width="33%">
-<col width="33%">
-</colgroup>
 <thead><tr>
 <th>Secret</th>
 <th>Function</th>
-<th>When</th>
+<th>Frequency</th>
 </tr></thead>
 <tbody>
 <tr>
@@ -399,81 +453,90 @@ Workflow
 <td>
 <code><a href="reference/set_sheet_url.html">set_sheet_url()</a></code> / <code><a href="reference/get_sheet_url.html">get_sheet_url()</a></code>
 </td>
-<td>Once per machine</td>
+<td>Once</td>
+</tr>
+<tr>
+<td>Service account</td>
+<td><code><a href="reference/config_auth.html">config_auth()</a></code></td>
+<td>Once</td>
 </tr>
 <tr>
 <td>OAuth token</td>
-<td>Managed by <code>gargle</code> via <code><a href="reference/sms_auth.html">sms_auth()</a></code>
-</td>
-<td>Once per machine</td>
-</tr>
-<tr>
-<td>Service account key</td>
-<td>JSON file at a secure path</td>
-<td>Provided by admin</td>
+<td><code><a href="reference/sms_auth.html">sms_auth()</a></code></td>
+<td>Managed automatically</td>
 </tr>
 </tbody>
 </table>
-<hr>
 </div>
-<div class="section level2">
-<h2 id="functions">Functions<a class="anchor" aria-label="anchor" href="#functions"></a>
-</h2>
+<div class="section level1">
+<h1 id="functions">Functions<a class="anchor" aria-label="anchor" href="#functions"></a>
+</h1>
 <table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
 <thead><tr>
 <th>Function</th>
 <th>Description</th>
 </tr></thead>
 <tbody>
 <tr>
+<td><code><a href="reference/config_auth.html">config_auth()</a></code></td>
+<td>Configure service account credentials</td>
+</tr>
+<tr>
 <td><code><a href="reference/sms_auth.html">sms_auth()</a></code></td>
-<td>Authenticate with Google Sheets (OAuth or service account)</td>
+<td>OAuth authentication</td>
 </tr>
 <tr>
 <td><code><a href="reference/set_sheet_url.html">set_sheet_url()</a></code></td>
-<td>Store the Sheet URL securely in the system keyring (once)</td>
+<td>Store Google Sheet URL</td>
 </tr>
 <tr>
 <td><code><a href="reference/get_sheet_url.html">get_sheet_url()</a></code></td>
-<td>Retrieve the stored Sheet URL</td>
+<td>Retrieve Google Sheet URL</td>
 </tr>
 <tr>
 <td><code><a href="reference/is_gauge_sms.html">is_gauge_sms()</a></code></td>
-<td>Check whether a string matches the gauge SMS format</td>
+<td>Detect gauge SMS</td>
 </tr>
 <tr>
 <td><code><a href="reference/is_agro_sms.html">is_agro_sms()</a></code></td>
-<td>Check whether a string matches the agrometeorological SMS format</td>
+<td>Detect agro SMS</td>
+</tr>
+<tr>
+<td><code><a href="reference/is_bad_sms.html">is_bad_sms()</a></code></td>
+<td>Detect malformed SMS</td>
+</tr>
+<tr>
+<td><code><a href="reference/is_no_rain.html">is_no_rain()</a></code></td>
+<td>Detect “no rainfall” messages</td>
+</tr>
+<tr>
+<td><code><a href="reference/fix_sms.html">fix_sms()</a></code></td>
+<td>Repair malformed gauge SMS</td>
 </tr>
 <tr>
 <td><code><a href="reference/parse_sms.html">parse_sms()</a></code></td>
-<td>Parse a vector of SMS messages — returns <code>list(gauge, agro)</code>
-</td>
+<td>Parse SMS messages</td>
 </tr>
 <tr>
 <td><code><a href="reference/read_sms.html">read_sms()</a></code></td>
-<td>Read, parse, and format SMS entries from a Google Sheet</td>
+<td>Read, repair and parse a Google Sheet</td>
 </tr>
 <tr>
 <td><code><a href="reference/clean_sheet.html">clean_sheet()</a></code></td>
-<td>Delete all data rows from a Google Sheet (preserves header)</td>
+<td>Remove all data rows while preserving headers</td>
 </tr>
 <tr>
 <td><code><a href="reference/to_station_id.html">to_station_id()</a></code></td>
-<td>Map a station name to its CLIDATA station code</td>
+<td>Convert station name to CLIDATA ID</td>
 </tr>
 <tr>
 <td><code><a href="reference/to_element_id.html">to_element_id()</a></code></td>
-<td>Map a variable name to its CLIDATA element abbreviation</td>
+<td>Convert variable name to CLIDATA element code</td>
 </tr>
 </tbody>
 </table>
 </div>
-</div>
+
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">

@@ -1,8 +1,12 @@
-# Read and parse SMS rain gauge entries from a Google Sheet
+# Read and parse SMS messages from a Google Sheet
 
-Reads SMS messages from a Google Sheet column, parses them into
-structured rainfall observations, deduplicates by station and date, and
-formats the result for ingestion into a climatological database.
+Reads raw SMS messages from a Google Sheet column, attempts to fix
+malformed gauge messages via
+[`fix_sms()`](https://oousmane.github.io/smscollectr/reference/fix_sms.md),
+parses valid messages into structured observations via
+[`parse_sms()`](https://oousmane.github.io/smscollectr/reference/parse_sms.md),
+and returns a named list with parsed data, malformed rows, and the raw
+sheet.
 
 ## Usage
 
@@ -28,43 +32,49 @@ read_sms(sheet_url, sheet = 1, col = "sms")
 
 ## Value
 
-A
-[`tibble::tibble()`](https://tibble.tidyverse.org/reference/tibble.html)
-with columns:
+A named list with four elements:
 
-- eg_gh_id:
+- `gauge`:
 
-  `character`. Station identifier.
+  [`tibble::tibble()`](https://tibble.tidyverse.org/reference/tibble.html)
+  of parsed rain gauge observations with columns `eg_gh_id`, `year`,
+  `month`, `day`, `time`, `eg_el_abbreviation`, `value`, `flag`.
 
-- eg_el_abbreviation:
+- `agro`:
 
-  `character`. Element code, always `"RR"` (rainfall).
+  [`tibble::tibble()`](https://tibble.tidyverse.org/reference/tibble.html)
+  of parsed agrometeorological observations with the same columns.
 
-- month:
+- `bad`:
 
-  `character`. Zero-padded month (`"01"` to `"12"`).
+  [`tibble::tibble()`](https://tibble.tidyverse.org/reference/tibble.html)
+  — subset of the raw sheet rows whose SMS could not be parsed or fixed.
 
-- day:
+- `raw`:
 
-  `character`. Zero-padded day (`"01"` to `"31"`).
+  [`tibble::tibble()`](https://tibble.tidyverse.org/reference/tibble.html)
+  — the full raw sheet as read from Google Sheets, with list columns
+  coerced to character.
 
-- value:
+`gauge` and `agro` are empty but correctly typed tibbles if no valid
+messages of that format are found.
 
-  `numeric`. Rainfall in mm.
+## See also
 
-- flag:
-
-  `character`. `"T"` for trace rainfall, `NA` otherwise.
-
-Returns an empty tibble with the correct column types if no valid SMS
-messages are found.
+[`parse_sms()`](https://oousmane.github.io/smscollectr/reference/parse_sms.md),
+[`fix_sms()`](https://oousmane.github.io/smscollectr/reference/fix_sms.md),
+[`is_bad_sms()`](https://oousmane.github.io/smscollectr/reference/is_bad_sms.md),
+[`sms_auth()`](https://oousmane.github.io/smscollectr/reference/sms_auth.md),
+[`get_sheet_url()`](https://oousmane.github.io/smscollectr/reference/get_sheet_url.md)
 
 ## Examples
 
 ``` r
 if (FALSE) { # \dontrun{
-url <- "https://docs.google.com/spreadsheets/d/SHEET_ID/edit"
-read_sms(url)
-read_sms(url, sheet = "Saisie", col = "message")
+sms_auth()
+url <- get_sheet_url()
+result <- read_sms(url)
+result$gauge
+result$bad
 } # }
 ```

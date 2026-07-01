@@ -7,7 +7,7 @@ is never written to disk in plain text, `.Renviron`, or any R script.
 ## Usage
 
 ``` r
-set_sheet_url(url, key = "gs_url", service = "smscollectr")
+set_sheet_url(url, key = "gs_url", service = "smscollectr", overwrite = FALSE)
 ```
 
 ## Arguments
@@ -25,6 +25,10 @@ set_sheet_url(url, key = "gs_url", service = "smscollectr")
 
   `character(1)`. Keyring service namespace. Default is `"smscollectr"`.
 
+- overwrite:
+
+  `logical(1)`. Overwrite if already exists. Default `FALSE`.
+
 ## Value
 
 Invisibly returns `key`.
@@ -38,5 +42,7 @@ Invisibly returns `key`.
 ``` r
 if (FALSE) { # \dontrun{
 set_sheet_url("https://docs.google.com/spreadsheets/d/SHEET_ID/edit")
+set_sheet_url("https://docs.google.com/spreadsheets/d/SHEET_ID/edit",
+              key = "agro_url")
 } # }
 ```

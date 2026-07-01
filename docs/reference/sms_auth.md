@@ -1,33 +1,36 @@
 # Authenticate with Google Sheets
 
-Wraps
-[`googlesheets4::gs4_auth()`](https://googlesheets4.tidyverse.org/reference/gs4_auth.html).
-Call once per session before using any Sheet-related functions. Uses a
-service account JSON if provided, otherwise falls back to OAuth with a
-persistent cache.
+Forces re-authentication. Useful when the token has expired or when
+switching accounts. If keyring credentials are available they are used;
+otherwise falls back to OAuth with the provided email.
 
 ## Usage
 
 ``` r
-sms_auth(path = NULL, email = NULL, cache = "~/.smscollectr_secrets")
+sms_auth(email = NULL, cache = "~/.smscollectr/oauth")
 ```
 
 ## Arguments
 
-- path:
-
-  `character(1)` or `NULL`. Path to a service account JSON key file. If
-  `NULL`, OAuth is used.
-
 - email:
 
-  `character(1)` or `NULL`. Google account email for OAuth.
+  `character(1)` or `NULL`. Google account email for OAuth fallback when
+  no keyring credentials are found.
 
 - cache:
 
-  `character(1)`. Path to the OAuth token cache directory. Default is
-  `"~/.smscollectr_secrets"`.
+  `character(1)`. OAuth token cache directory. Default
+  `~/.smscollectr/oauth`.
 
 ## Value
 
 Invisibly returns `TRUE`.
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+sms_auth()                            # service account via keyring
+sms_auth(email = "you@gmail.com")     # OAuth fallback
+} # }
+```

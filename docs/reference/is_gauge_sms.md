@@ -1,7 +1,7 @@
 # Check whether a string is a valid rain gauge SMS
 
 A valid SMS starts with a 6-digit station identifier followed by one of
-`P`, `S`, `A`, or `C`, then a comma (e.g. `"200001S, 03-06-2026, 125"`).
+`P`, `A`, or `C`, then a comma (e.g. `"200001S, 03-06-2026, 125"`).
 
 ## Usage
 
@@ -24,7 +24,7 @@ A `logical` vector the same length as `text`.
 
 ``` r
 is_gauge_sms("200001S, 03-06-2026, 125")  # TRUE
-#> [1] TRUE
+#> [1] FALSE
 is_gauge_sms("hello world")               # FALSE
 #> [1] FALSE
 is_gauge_sms(NULL)                        # logical(0)
