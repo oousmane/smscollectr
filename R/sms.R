@@ -105,7 +105,7 @@ is_agro_sms <- function(text = NULL) {
     eg_gh_id = sms_parts[1],
     year     = as.integer(format(d, "%Y")),
     month    = as.integer(format(d, "%m")),
-    day      = as.integer(format(d, "%d")),
+    day      = as.integer(format(d, "%d"))-1,
     value    = value,
     flag     = flag
   )
