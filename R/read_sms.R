@@ -18,8 +18,10 @@
 #'       `eg_el_abbreviation`, `value`, `flag`.}
 #'     \item{`agro`}{[tibble::tibble()] of parsed agrometeorological
 #'       observations with the same columns.}
-#'     \item{`bad`}{[tibble::tibble()] — subset of the raw sheet rows
-#'       whose SMS could not be parsed or fixed.}
+#'     \item{`bad`}{[tibble::tibble()] — raw sheet rows flagged for review,
+#'       with an extra `bad_reason` column explaining why each row was flagged.
+#'       Possible values: `"malformed"`, `"future date"`, `"late submission"`,
+#'       `"too old"`.}
 #'     \item{`raw`}{[tibble::tibble()] — the full raw sheet as read from
 #'       Google Sheets, with list columns coerced to character.}
 #'   }
@@ -70,7 +72,13 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
   }
   
   texts <- as.character(dplyr::pull(raw, {{ col }}))
-  
+
+  # Parse sent date from raw$date (e.g. "July 4, 2026 at 12:49AM")
+  sent_dates <- as.Date(
+    sub("\\s+at\\s+.*$", "", raw$date),
+    format = "%B %d, %Y"
+  )
+
   empty_tbl <- tibble::tibble(
     eg_gh_id = character(), year = integer(), month = integer(),
     day = integer(), time = character(), eg_el_abbreviation = character(),
@@ -84,8 +92,37 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
     return(list(gauge = empty_tbl, agro = empty_tbl, bad = raw[0, ], raw = raw))
   }
   
-  result     <- parse_sms(texts[valid])
-  result$bad <- raw[valid, ][is_bad_sms(texts[valid]) & !is_agro_sms(texts[valid]), ]
+  result <- parse_sms(texts[valid], sent_dates = sent_dates[valid])
+
+  v_texts <- texts[valid]
+  v_sent  <- sent_dates[valid]
+
+  # Structurally malformed gauge SMS
+  struct_bad <- is_bad_sms(v_texts) & !is_agro_sms(v_texts)
+
+  # Gauge SMS with a date anomaly: future body date or body < sent_date
+  body_dates <- suppressWarnings(as.Date(
+    ifelse(is_gauge_sms(v_texts),
+           sub("^[^,]+,\\s*([0-9]{2}-[0-9]{2}-[0-9]{4}).*$", "\\1", v_texts),
+           NA_character_),
+    format = "%d-%m-%Y"
+  ))
+  date_bad <- !is.na(body_dates) & !is.na(v_sent) & body_dates != v_sent
+
+  bad_mask   <- struct_bad | date_bad
+  bad_raw    <- raw[valid, ][bad_mask, ]
+
+  bad_reason <- dplyr::case_when(
+    # Date reasons take priority — is_bad_sms also catches date issues so a
+    # future/too-old SMS would appear in both struct_bad and date_bad.
+    !is.na(body_dates[bad_mask]) & body_dates[bad_mask] > v_sent[bad_mask]  ~ "future date",
+    !is.na(body_dates[bad_mask]) &
+      as.integer(v_sent[bad_mask] - body_dates[bad_mask]) > .max_sms_age() ~ "too old",
+    date_bad[bad_mask]                                                       ~ "late submission",
+    TRUE                                                                     ~ "malformed"
+  )
+
+  result$bad <- dplyr::mutate(bad_raw, bad_reason = bad_reason)
   result$raw <- raw
   result
 }

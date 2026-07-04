@@ -10,21 +10,36 @@ is_bad_sms(x, gauge = TRUE)
 \item{x}{A character string containing the SMS text.}
 
 \item{gauge}{Logical. If \code{TRUE} (default), validates via
-\code{is_gauge_sms()} rules.}
+\code{is_gauge_sms()} rules. If \code{FALSE}, validates via
+\code{is_agro_sms()}.}
 }
 \value{
 A logical scalar. \code{TRUE} if malformed, \code{FALSE} if valid.
 }
 \description{
-Validates an SMS against format-specific rules. Currently only gauge SMS
-validation is implemented. A valid gauge SMS has exactly one line, a
-station ID matching \code{[0-9]{6}[PAC]}, a date in \code{DD-MM-YYYY}
-format, and a value of 1-4 digits or a "no rain" mention.
+Validates an SMS against format-specific rules. A valid gauge SMS has
+exactly one line, a station ID matching \code{[0-9]{6}[PAC]} with a
+numeric part not exceeding 200166, a date in \code{DD-MM-YYYY} format
+not in the future and not older than \code{SMSCOLLECTR_MAX_AGE} days
+(default 3), and a value of 1-4 digits, \code{TR}, or a "no rain"
+mention.
+}
+\details{
+The maximum SMS age can be configured via the environment variable
+\code{SMSCOLLECTR_MAX_AGE}:
+\preformatted{
+Sys.setenv(SMSCOLLECTR_MAX_AGE = "10")
+}
 }
 \examples{
-is_bad_sms("200068P, 24-06-2026, 21")            # FALSE
-is_bad_sms("200068P, 24-06-2026, 12mm")           # TRUE
-is_bad_sms("200068P, 24-06-2026, pas de pluie")   # FALSE
-is_bad_sms("200068P, 24-06-2026,")                # TRUE
+is_bad_sms("200068P, 24-06-2026, 21")              # FALSE
+is_bad_sms("200068P, 24-06-2026, TR")              # FALSE
+is_bad_sms("200068P, 24-06-2026, 12mm")            # TRUE
+is_bad_sms("200068P, 24-06-2026, pas de pluie")    # FALSE
+is_bad_sms("200068P, 24-06-2026,")                 # TRUE
+is_bad_sms("200286P, 24-06-2026, 21")              # TRUE — ID out of range
 
+}
+\seealso{
+\code{\link[=is_gauge_sms]{is_gauge_sms()}}, \code{\link[=is_no_rain]{is_no_rain()}}, \code{\link[=fix_sms]{fix_sms()}}
 }

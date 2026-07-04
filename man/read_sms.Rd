@@ -23,8 +23,10 @@ with columns \code{eg_gh_id}, \code{year}, \code{month}, \code{day}, \code{time}
 \code{eg_el_abbreviation}, \code{value}, \code{flag}.}
 \item{\code{agro}}{\code{\link[tibble:tibble]{tibble::tibble()}} of parsed agrometeorological
 observations with the same columns.}
-\item{\code{bad}}{\code{\link[tibble:tibble]{tibble::tibble()}} — subset of the raw sheet rows
-whose SMS could not be parsed or fixed.}
+\item{\code{bad}}{\code{\link[tibble:tibble]{tibble::tibble()}} — raw sheet rows flagged for review,
+with an extra \code{bad_reason} column explaining why each row was flagged.
+Possible values: \code{"malformed"}, \code{"future date"}, \code{"late submission"},
+\code{"too old"}.}
 \item{\code{raw}}{\code{\link[tibble:tibble]{tibble::tibble()}} — the full raw sheet as read from
 Google Sheets, with list columns coerced to character.}
 }

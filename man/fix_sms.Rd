@@ -4,34 +4,64 @@
 \alias{fix_sms}
 \title{Attempt to fix a malformed SMS}
 \usage{
-fix_sms(x, gauge = TRUE)
+fix_sms(x, gauge = TRUE, sent_date = Sys.Date())
 }
 \arguments{
-\item{x}{A character string containing the SMS text (possibly multi-line).}
+\item{x}{A character vector of SMS texts (possibly multi-line).}
 
 \item{gauge}{Logical. If \code{TRUE} (default), fixes against gauge SMS
 rules via \code{is_gauge_sms()}. If \code{FALSE}, throws an error as
 non-gauge fixing is not yet implemented.}
+
+\item{sent_date}{\code{Date(1)}. The date the message was received. Used for
+date validation and the yesterday-shift. Defaults to \code{Sys.Date()}.}
 }
 \value{
-A character string in the form \code{"ID, DD-MM-YYYY, value"}, or
-\code{NA_character_} if the SMS cannot be fixed.
+A character vector the same length as \code{x}, in the form
+\code{"ID, DD-MM-YYYY, value"}, or \code{NA_character_} for each SMS
+that cannot be fixed.
 }
 \description{
 Extracts the last valid line, cleans the station ID, and normalises the
-rainfall value by stripping non-numeric characters. Special values are
-handled as follows: a "no rain" mention is converted to \code{"0"}, and
-a trace rainfall (\code{TR}) is normalised to \code{"TR"}. Returns the
-canonical form \code{"XXXXXXP, DD-MM-YYYY, VVV"}.
+rainfall value. Handles the following cases:
+\itemize{
+\item Missing comma between ID and date.
+\item Spaces in station ID.
+\item Extra digits appended to the date field.
+\item Decimal point in value (e.g. \code{1.0} -> \code{10}).
+\item Comma as decimal separator (e.g. \code{12,6} -> \code{126}).
+\item Unit suffixes (e.g. \code{12mm} -> \code{12}).
+\item Hour annotations (e.g. \code{19h}, \code{de 1730 a 1830}).
+\item Date-like patterns in value field (e.g. \code{02/07/2026}).
+\item "No rain" mentions -> \code{"0"}.
+\item Trace rainfall variants -> \code{"TR"}.
+\item Date shift: if date is yesterday, shifts to today.
+}
+}
+\details{
+Returns \code{NA_character_} if the SMS is unrecoverable (no valid gauge
+ID, unparseable date, future date, or older than \code{SMSCOLLECTR_MAX_AGE}
+days).
+
+The maximum SMS age can be configured via the environment variable
+\code{SMSCOLLECTR_MAX_AGE}:
+\preformatted{
+Sys.setenv(SMSCOLLECTR_MAX_AGE = "10")
+}
+
+Fully vectorised — accepts a character vector of any length.
 }
 \examples{
-fix_sms("200068P, 24-06-2026, 12,6")                        # "200068P, 24-06-2026, 126"
-fix_sms("200068P, 24-06-2026, 12mm")                        # "200068P, 24-06-2026, 12"
-fix_sms("200053A , 30-06-2026, 1.0")                        # "200053A, 30-06-2026, 10"
-fix_sms("200068P, 24-06-2026, TR")                          # "200068P, 24-06-2026, TR"
-fix_sms("200068P, 24-06-2026, pas de pluie")                # "200068P, 24-06-2026, 0"
-fix_sms("200034P,23-06-2026,boussouma n'a pas eu de pluie") # "200034P, 23-06-2026, 0"
-fix_sms("32mm enregistré le 12/06/26")                      # NA
+fix_sms("200068P, 24-06-2026, 12,6")                          # "200068P, 24-06-2026, 126"
+fix_sms("200068P, 24-06-2026, 12mm")                          # "200068P, 24-06-2026, 12"
+fix_sms("200053A , 30-06-2026, 1.0")                          # "200053A, 30-06-2026, 10"
+fix_sms("200068P, 24-06-2026, TR")                            # "200068P, 24-06-2026, TR"
+fix_sms("200068P, 24-06-2026, traces")                        # "200068P, 24-06-2026, TR"
+fix_sms("200068P, 24-06-2026, pas de pluie")                  # "200068P, 24-06-2026, 0"
+fix_sms("200034P, 23-06-2026, boussouma n'a pas eu de pluie") # "200034P, 23-06-2026, 0"
+fix_sms("200043A, 03-07-2026, 008 19h")                       # "200043A, 03-07-2026, 8"
+fix_sms("200043A, 03-07-2026, 1730 a 1830 008")               # "200043A, 03-07-2026, 8"
+fix_sms("32mm enregistre le 12/06/26")                        # NA
 
 }
 \seealso{
