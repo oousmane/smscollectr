@@ -1,3 +1,50 @@
+# smscollectr 0.0.3
+
+## New features
+
+- **`$bad` now includes a `bad_reason` column** explaining why each row was
+  flagged: `"malformed"`, `"future date"`, `"late submission"`, or `"too old"`.
+
+- **`fix_sms()` gains a `sent_date` argument** (default `Sys.Date()`). Date
+  validation and the yesterday-shift are now relative to the actual received
+  date instead of the system clock.
+
+## Improvements
+
+- `read_sms()` parses `raw$date` into per-message `sent_dates` and passes
+  them through to `parse_sms()`, `fix_sms()`, and `.parse_sms()`, so all
+  date logic is relative to when each message was received.
+- All date-anomaly gauge SMS now appear in `$bad`: future body date, late
+  submission (body < sent_date, within max age), and too-old submission
+  (body < sent_date, beyond max age).
+- `parse_sms()` accepts a `sent_dates` argument (same length as `texts`) for
+  direct use outside `read_sms()`.
+- `sent_dates` is kept in sync with `texts` through all filtering steps,
+  fixing a silent index-misalignment bug that assigned the wrong `sent_date`
+  to messages appearing after a dropped SMS.
+
+## Bug fixes
+
+- `group_by(.data$col)` restored — bare string arguments created phantom
+  columns instead of grouping by existing ones, collapsing all rows to one
+  via `slice_tail(n = 1)`.
+- `dplyr::select()` updated to `all_of(c(...))` to replace deprecated
+  `.data$col` usage inside `select()` (tidyselect ≥ 1.2.0).
+- `fix_sms()` vectorised path now returns an unnamed character vector
+  (`unname(vapply(...))`), fixing a test failure on named vector comparison.
+- `.Rbuildignore` merge conflict resolved; `^\.claude$` and `^\.git$` added.
+- `DESCRIPTION` description field trailing period added (R CMD check NOTE).
+
+## Internal changes
+
+- `.parse_sms()`, `.parse_val()`, `.parse_agro_sms()` marked `@noRd` — no
+  longer generate `.Rd` files or appear in the public reference index.
+- `withr` added to `Suggests` for test mocking.
+- 8 new `read_sms()` tests (mocked via `local_mocked_bindings`) and 4 new
+  `.parse_sms()` date-rule tests.
+
+---
+
 # smscollectr 0.0.2
 
 ## New features
