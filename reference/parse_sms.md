@@ -2,11 +2,14 @@
 
 Detects the format of each SMS message, dispatches to the appropriate
 parser, and returns a named list of two tibbles — one per format.
+Malformed gauge SMS are fixed via
+[`fix_sms()`](https://oousmane.github.io/smscollectr/reference/fix_sms.md)
+before parsing.
 
 ## Usage
 
 ``` r
-parse_sms(texts)
+parse_sms(texts, sent_dates = NULL)
 ```
 
 ## Arguments
@@ -14,6 +17,15 @@ parse_sms(texts)
 - texts:
 
   `character` vector of raw SMS strings.
+
+- sent_dates:
+
+  `Date` vector the same length as `texts`, giving the date each message
+  was received. Used to validate and shift SMS dates relative to the
+  actual send time rather than
+  [`Sys.Date()`](https://rdrr.io/r/base/Sys.time.html). `NULL` falls
+  back to [`Sys.Date()`](https://rdrr.io/r/base/Sys.time.html) for every
+  message.
 
 ## Value
 
@@ -43,7 +55,8 @@ Supported formats:
 
 - `agro`:
 
-  Format B — Agrometeorological: multi-line `[STATION]\n[DD]\nKey= val`.
+  Format B — Agrometeorological: multi-line
+  `[STATION]\n[DD-MM-YYYY]\nKey= val`.
 
 Invalid or unrecognised messages are silently dropped. Duplicates (same
 `eg_gh_id`, `year`, `month`, `day`, `eg_el_abbreviation`) keep the last
@@ -51,4 +64,5 @@ occurrence within each tibble.
 
 ## See also
 
-[`read_sms()`](https://oousmane.github.io/smscollectr/reference/read_sms.md)
+[`read_sms()`](https://oousmane.github.io/smscollectr/reference/read_sms.md),
+[`fix_sms()`](https://oousmane.github.io/smscollectr/reference/fix_sms.md)

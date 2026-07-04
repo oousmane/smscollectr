@@ -1,5 +1,69 @@
 # Changelog
 
+## smscollectr 0.0.3
+
+### New features
+
+- **`$bad` now includes a `bad_reason` column** explaining why each row
+  was flagged: `"malformed"`, `"future date"`, `"late submission"`, or
+  `"too old"`.
+
+- **[`fix_sms()`](https://oousmane.github.io/smscollectr/reference/fix_sms.md)
+  gains a `sent_date` argument** (default
+  [`Sys.Date()`](https://rdrr.io/r/base/Sys.time.html)). Date validation
+  and the yesterday-shift are now relative to the actual received date
+  instead of the system clock.
+
+### Improvements
+
+- [`read_sms()`](https://oousmane.github.io/smscollectr/reference/read_sms.md)
+  parses `raw$date` into per-message `sent_dates` and passes them
+  through to
+  [`parse_sms()`](https://oousmane.github.io/smscollectr/reference/parse_sms.md),
+  [`fix_sms()`](https://oousmane.github.io/smscollectr/reference/fix_sms.md),
+  and `.parse_sms()`, so all date logic is relative to when each message
+  was received.
+- All date-anomaly gauge SMS now appear in `$bad`: future body date,
+  late submission (body \< sent_date, within max age), and too-old
+  submission (body \< sent_date, beyond max age).
+- [`parse_sms()`](https://oousmane.github.io/smscollectr/reference/parse_sms.md)
+  accepts a `sent_dates` argument (same length as `texts`) for direct
+  use outside
+  [`read_sms()`](https://oousmane.github.io/smscollectr/reference/read_sms.md).
+- `sent_dates` is kept in sync with `texts` through all filtering steps,
+  fixing a silent index-misalignment bug that assigned the wrong
+  `sent_date` to messages appearing after a dropped SMS.
+
+### Bug fixes
+
+- `group_by(.data$col)` restored — bare string arguments created phantom
+  columns instead of grouping by existing ones, collapsing all rows to
+  one via `slice_tail(n = 1)`.
+- [`dplyr::select()`](https://dplyr.tidyverse.org/reference/select.html)
+  updated to `all_of(c(...))` to replace deprecated `.data$col` usage
+  inside `select()` (tidyselect ≥ 1.2.0).
+- [`fix_sms()`](https://oousmane.github.io/smscollectr/reference/fix_sms.md)
+  vectorised path now returns an unnamed character vector
+  (`unname(vapply(...))`), fixing a test failure on named vector
+  comparison.
+- `.Rbuildignore` merge conflict resolved; `^\.claude$` and `^\.git$`
+  added.
+- `DESCRIPTION` description field trailing period added (R CMD check
+  NOTE).
+
+### Internal changes
+
+- `.parse_sms()`, `.parse_val()`, `.parse_agro_sms()` marked `@noRd` —
+  no longer generate `.Rd` files or appear in the public reference
+  index.
+- `withr` added to `Suggests` for test mocking.
+- 8 new
+  [`read_sms()`](https://oousmane.github.io/smscollectr/reference/read_sms.md)
+  tests (mocked via `local_mocked_bindings`) and 4 new `.parse_sms()`
+  date-rule tests.
+
+------------------------------------------------------------------------
+
 ## smscollectr 0.0.2
 
 ### New features
@@ -10,10 +74,8 @@
   agrometeorological observations alongside the existing `$gauge`
   element. Two new helpers,
   [`is_agro_sms()`](https://oousmane.github.io/smscollectr/reference/is_agro_sms.md)
-  and
-  [`.parse_agro_sms()`](https://oousmane.github.io/smscollectr/reference/dot-parse_agro_sms.md),
-  drive detection and parsing of the 17-line agro format
-  (`Station / DD-MM-YYYY / Key= value` × 15).
+  and `.parse_agro_sms()`, drive detection and parsing of the 17-line
+  agro format (`Station / DD-MM-YYYY / Key= value` × 15).
 
 - **[`config_auth()`](https://oousmane.github.io/smscollectr/reference/config_auth.md)**
   — new function to save a Google service account JSON key to the system

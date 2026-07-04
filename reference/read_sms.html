@@ -13,7 +13,7 @@ with parsed data, malformed rows, and the raw sheet."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">smscollectr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,8 +81,10 @@ with columns <code>eg_gh_id</code>, <code>year</code>, <code>month</code>, <code
 observations with the same columns.</p></dd>
 
 <dt><code>bad</code></dt>
-<dd><p><code><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble::tibble()</a></code> — subset of the raw sheet rows
-whose SMS could not be parsed or fixed.</p></dd>
+<dd><p><code><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble::tibble()</a></code> — raw sheet rows flagged for review,
+with an extra <code>bad_reason</code> column explaining why each row was flagged.
+Possible values: <code>"malformed"</code>, <code>"future date"</code>, <code>"late submission"</code>,
+<code>"too old"</code>.</p></dd>
 
 <dt><code>raw</code></dt>
 <dd><p><code><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble::tibble()</a></code> — the full raw sheet as read from

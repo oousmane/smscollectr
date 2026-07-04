@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">smscollectr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,10 +33,49 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.0.3" id="smscollectr-003">smscollectr 0.0.3<a class="anchor" aria-label="anchor" href="#smscollectr-003"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-0-3">New features<a class="anchor" aria-label="anchor" href="#new-features-0-0-3"></a></h3>
+<ul><li><p><strong><code>$bad</code> now includes a <code>bad_reason</code> column</strong> explaining why each row was flagged: <code>"malformed"</code>, <code>"future date"</code>, <code>"late submission"</code>, or <code>"too old"</code>.</p></li>
+<li><p><strong><code><a href="../reference/fix_sms.html">fix_sms()</a></code> gains a <code>sent_date</code> argument</strong> (default <code><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.Date()</a></code>). Date validation and the yesterday-shift are now relative to the actual received date instead of the system clock.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="improvements-0-0-3">Improvements<a class="anchor" aria-label="anchor" href="#improvements-0-0-3"></a></h3>
+<ul><li>
+<code><a href="../reference/read_sms.html">read_sms()</a></code> parses <code>raw$date</code> into per-message <code>sent_dates</code> and passes them through to <code><a href="../reference/parse_sms.html">parse_sms()</a></code>, <code><a href="../reference/fix_sms.html">fix_sms()</a></code>, and <code>.parse_sms()</code>, so all date logic is relative to when each message was received.</li>
+<li>All date-anomaly gauge SMS now appear in <code>$bad</code>: future body date, late submission (body &lt; sent_date, within max age), and too-old submission (body &lt; sent_date, beyond max age).</li>
+<li>
+<code><a href="../reference/parse_sms.html">parse_sms()</a></code> accepts a <code>sent_dates</code> argument (same length as <code>texts</code>) for direct use outside <code><a href="../reference/read_sms.html">read_sms()</a></code>.</li>
+<li>
+<code>sent_dates</code> is kept in sync with <code>texts</code> through all filtering steps, fixing a silent index-misalignment bug that assigned the wrong <code>sent_date</code> to messages appearing after a dropped SMS.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-0-3">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-0-3"></a></h3>
+<ul><li>
+<code>group_by(.data$col)</code> restored — bare string arguments created phantom columns instead of grouping by existing ones, collapsing all rows to one via <code>slice_tail(n = 1)</code>.</li>
+<li>
+<code><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">dplyr::select()</a></code> updated to <code>all_of(c(...))</code> to replace deprecated <code>.data$col</code> usage inside <code>select()</code> (tidyselect ≥ 1.2.0).</li>
+<li>
+<code><a href="../reference/fix_sms.html">fix_sms()</a></code> vectorised path now returns an unnamed character vector (<code>unname(vapply(...))</code>), fixing a test failure on named vector comparison.</li>
+<li>
+<code>.Rbuildignore</code> merge conflict resolved; <code>^\.claude$</code> and <code>^\.git$</code> added.</li>
+<li>
+<code>DESCRIPTION</code> description field trailing period added (R CMD check NOTE).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="internal-changes-0-0-3">Internal changes<a class="anchor" aria-label="anchor" href="#internal-changes-0-0-3"></a></h3>
+<ul><li>
+<code>.parse_sms()</code>, <code>.parse_val()</code>, <code>.parse_agro_sms()</code> marked <code>@noRd</code> — no longer generate <code>.Rd</code> files or appear in the public reference index.</li>
+<li>
+<code>withr</code> added to <code>Suggests</code> for test mocking.</li>
+<li>8 new <code><a href="../reference/read_sms.html">read_sms()</a></code> tests (mocked via <code>local_mocked_bindings</code>) and 4 new <code>.parse_sms()</code> date-rule tests.</li>
+</ul><hr></div>
+</div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.2" id="smscollectr-002">smscollectr 0.0.2<a class="anchor" aria-label="anchor" href="#smscollectr-002"></a></h2>
 <div class="section level3">
 <h3 id="new-features-0-0-2">New features<a class="anchor" aria-label="anchor" href="#new-features-0-0-2"></a></h3>
-<ul><li><p><strong>Agrometeorological SMS support</strong> — <code><a href="../reference/read_sms.html">read_sms()</a></code> now returns an <code>$agro</code> list element containing parsed agrometeorological observations alongside the existing <code>$gauge</code> element. Two new helpers, <code><a href="../reference/is_agro_sms.html">is_agro_sms()</a></code> and <code><a href="../reference/dot-parse_agro_sms.html">.parse_agro_sms()</a></code>, drive detection and parsing of the 17-line agro format (<code>Station / DD-MM-YYYY / Key= value</code> × 15).</p></li>
+<ul><li><p><strong>Agrometeorological SMS support</strong> — <code><a href="../reference/read_sms.html">read_sms()</a></code> now returns an <code>$agro</code> list element containing parsed agrometeorological observations alongside the existing <code>$gauge</code> element. Two new helpers, <code><a href="../reference/is_agro_sms.html">is_agro_sms()</a></code> and <code>.parse_agro_sms()</code>, drive detection and parsing of the 17-line agro format (<code>Station / DD-MM-YYYY / Key= value</code> × 15).</p></li>
 <li><p><strong><code><a href="../reference/config_auth.html">config_auth()</a></code></strong> — new function to save a Google service account JSON key to the system keyring once (<code>config_auth("key.json")</code>). All subsequent sessions authenticate automatically without any user interaction.</p></li>
 <li><p><strong><code><a href="../reference/set_sheet_url.html">set_sheet_url()</a></code> / <code><a href="../reference/get_sheet_url.html">get_sheet_url()</a></code></strong> — store and retrieve Google Sheet URLs securely via the system keyring (macOS Keychain, Windows Credential Manager, Linux Secret Service). URLs are never written to disk in plain text.</p></li>
 <li><p><strong><code><a href="../reference/to_station_id.html">to_station_id()</a></code> / <code><a href="../reference/to_element_id.html">to_element_id()</a></code></strong> — lookup helpers that translate raw SMS station codes and element abbreviations to their canonical identifiers using an internal reference table (<code>R/sysdata.rda</code>, built from <code>data-raw/lookup.R</code>).</p></li>

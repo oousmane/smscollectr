@@ -7,11 +7,9 @@
 <url><loc>https://oousmane.github.io/smscollectr/news/index.html</loc></url>
 <url><loc>https://oousmane.github.io/smscollectr/reference/clean_sheet.html</loc></url>
 <url><loc>https://oousmane.github.io/smscollectr/reference/config_auth.html</loc></url>
-<url><loc>https://oousmane.github.io/smscollectr/reference/dot-parse_agro_sms.html</loc></url>
-<url><loc>https://oousmane.github.io/smscollectr/reference/dot-parse_sms.html</loc></url>
-<url><loc>https://oousmane.github.io/smscollectr/reference/dot-parse_val.html</loc></url>
 <url><loc>https://oousmane.github.io/smscollectr/reference/fix_sms.html</loc></url>
 <url><loc>https://oousmane.github.io/smscollectr/reference/get_sheet_url.html</loc></url>
+<url><loc>https://oousmane.github.io/smscollectr/reference/get_sms_max_age.html</loc></url>
 <url><loc>https://oousmane.github.io/smscollectr/reference/index.html</loc></url>
 <url><loc>https://oousmane.github.io/smscollectr/reference/is_agro_sms.html</loc></url>
 <url><loc>https://oousmane.github.io/smscollectr/reference/is_bad_sms.html</loc></url>
@@ -20,6 +18,7 @@
 <url><loc>https://oousmane.github.io/smscollectr/reference/parse_sms.html</loc></url>
 <url><loc>https://oousmane.github.io/smscollectr/reference/read_sms.html</loc></url>
 <url><loc>https://oousmane.github.io/smscollectr/reference/set_sheet_url.html</loc></url>
+<url><loc>https://oousmane.github.io/smscollectr/reference/set_sms_max_age.html</loc></url>
 <url><loc>https://oousmane.github.io/smscollectr/reference/sms_auth.html</loc></url>
 <url><loc>https://oousmane.github.io/smscollectr/reference/smscollectr-package.html</loc></url>
 <url><loc>https://oousmane.github.io/smscollectr/reference/to_element_id.html</loc></url>

@@ -10,13 +10,13 @@ Source:
 [`DESCRIPTION`](https://github.com/oousmane/smscollectr/blob/master/DESCRIPTION)
 
 Ouedraogo O (2026). *smscollectr: Collect and Process Rain Gauge SMS
-Data*. R package version 0.0.2,
+Data*. R package version 0.0.3,
 <https://github.com/oousmane/smscollectr>.
 
     @Manual{,
       title = {smscollectr: Collect and Process Rain Gauge SMS Data},
       author = {Ousmane Ouedraogo},
       year = {2026},
-      note = {R package version 0.0.2},
+      note = {R package version 0.0.3},
       url = {https://github.com/oousmane/smscollectr},
     }
