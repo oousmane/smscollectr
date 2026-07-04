@@ -561,8 +561,8 @@ parse_sms <- function(texts) {
     df |>
       dplyr::filter(!dplyr::if_all(dplyr::everything(), is.na)) |>
       dplyr::group_by(
-        "eg_gh_id", "year", "month",
-        "day", "eg_el_abbreviation"
+        .data$eg_gh_id, .data$year, .data$month,
+        .data$day, .data$eg_el_abbreviation
       ) |>
       dplyr::slice_tail(n = 1) |>
       dplyr::ungroup()
@@ -590,8 +590,8 @@ parse_sms <- function(texts) {
         eg_el_abbreviation = "RR"
       ) |>
       dplyr::select(
-        "eg_gh_id", "year", "month", "day",
-        "time", "eg_el_abbreviation", "value", "flag"
+        dplyr::all_of(c("eg_gh_id", "year", "month", "day",
+                        "time", "eg_el_abbreviation", "value", "flag"))
       )
     if (is.na(row$eg_gh_id)) return(NULL)
     row
