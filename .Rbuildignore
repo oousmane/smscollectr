@@ -7,8 +7,5 @@
 ^docs$
 ^pkgdown$
 ^\.github$
-<<<<<<< HEAD
 ^\.git$
-=======
-^\.git$
->>>>>>> a802dd6269bc3a995c8d2537ded2770ba85fea14
+^\.claude$

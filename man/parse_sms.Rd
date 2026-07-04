@@ -24,12 +24,14 @@ format are found.
 \description{
 Detects the format of each SMS message, dispatches to the appropriate
 parser, and returns a named list of two tibbles — one per format.
+Malformed gauge SMS are fixed via \code{\link[=fix_sms]{fix_sms()}} before parsing.
 }
 \details{
 Supported formats:
 \describe{
 \item{\code{gauge}}{Format A — Rain gauge: \code{"200001S, 03-06-2026, 125"}.}
-\item{\code{agro}}{Format B — Agrometeorological: multi-line \verb{[STATION]\\n[DD]\\nKey= val}.}
+\item{\code{agro}}{Format B — Agrometeorological: multi-line
+\verb{[STATION]\\n[DD-MM-YYYY]\\nKey= val}.}
 }
 
 Invalid or unrecognised messages are silently dropped. Duplicates
@@ -37,5 +39,5 @@ Invalid or unrecognised messages are silently dropped. Duplicates
 the last occurrence within each tibble.
 }
 \seealso{
-\code{\link[=read_sms]{read_sms()}}
+\code{\link[=read_sms]{read_sms()}}, \code{\link[=fix_sms]{fix_sms()}}
 }
