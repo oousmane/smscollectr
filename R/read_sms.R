@@ -18,10 +18,10 @@
 #'       `eg_el_abbreviation`, `value`, `flag`.}
 #'     \item{`agro`}{[tibble::tibble()] of parsed agrometeorological
 #'       observations with the same columns.}
-#'     \item{`bad`}{[tibble::tibble()] — raw sheet rows flagged for review:
-#'       structurally malformed gauge SMS (unfixable), gauge SMS with a future
-#'       body date, and gauge SMS whose body date is older than the sent date
-#'       (late or too-old submissions).}
+#'     \item{`bad`}{[tibble::tibble()] — raw sheet rows flagged for review,
+#'       with an extra `bad_reason` column explaining why each row was flagged.
+#'       Possible values: `"malformed"`, `"future date"`, `"late submission"`,
+#'       `"too old"`, `"malformed + date anomaly"`.}
 #'     \item{`raw`}{[tibble::tibble()] — the full raw sheet as read from
 #'       Google Sheets, with list columns coerced to character.}
 #'   }
@@ -100,8 +100,7 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
   # Structurally malformed gauge SMS
   struct_bad <- is_bad_sms(v_texts) & !is_agro_sms(v_texts)
 
-  # Gauge SMS with a date anomaly: future body date, late submission (body <
-  # sent_date whether within or beyond max_sms_age).
+  # Gauge SMS with a date anomaly: future body date or body < sent_date
   body_dates <- suppressWarnings(as.Date(
     ifelse(is_gauge_sms(v_texts),
            sub("^[^,]+,\\s*([0-9]{2}-[0-9]{2}-[0-9]{4}).*$", "\\1", v_texts),
@@ -110,7 +109,18 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
   ))
   date_bad <- !is.na(body_dates) & !is.na(v_sent) & body_dates != v_sent
 
-  result$bad <- raw[valid, ][struct_bad | date_bad, ]
+  bad_mask   <- struct_bad | date_bad
+  bad_raw    <- raw[valid, ][bad_mask, ]
+
+  bad_reason <- dplyr::case_when(
+    struct_bad[bad_mask] & date_bad[bad_mask] ~ "malformed + date anomaly",
+    struct_bad[bad_mask]                      ~ "malformed",
+    body_dates[bad_mask] > v_sent[bad_mask]   ~ "future date",
+    as.integer(v_sent[bad_mask] - body_dates[bad_mask]) > .max_sms_age() ~ "too old",
+    TRUE                                      ~ "late submission"
+  )
+
+  result$bad <- dplyr::mutate(bad_raw, bad_reason = bad_reason)
   result$raw <- raw
   result
 }

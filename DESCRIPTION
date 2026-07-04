@@ -4,10 +4,8 @@ Version: 0.0.2
 Authors@R: person("Ousmane", "Ouedraogo", role = c("aut", "cre"),
     email = "ouedraogo.ousmane@meteoburkina.bf")
 Description: Reads structured SMS messages forwarded to a Google Sheet by
-    field observers, detects and fixes malformed entries, parses valid
-    messages into tidy rainfall and agrometeorological observations, and
-    exports results in a format compatible with the CLIDATA climatological
-    database.
+    field observers, detects and fixes malformed entries, and parses valid
+    messages into tidy rainfall and agrometeorological observations.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

@@ -4,7 +4,7 @@
 \alias{fix_sms}
 \title{Attempt to fix a malformed SMS}
 \usage{
-fix_sms(x, gauge = TRUE)
+fix_sms(x, gauge = TRUE, sent_date = Sys.Date())
 }
 \arguments{
 \item{x}{A character vector of SMS texts (possibly multi-line).}
@@ -12,6 +12,9 @@ fix_sms(x, gauge = TRUE)
 \item{gauge}{Logical. If \code{TRUE} (default), fixes against gauge SMS
 rules via \code{is_gauge_sms()}. If \code{FALSE}, throws an error as
 non-gauge fixing is not yet implemented.}
+
+\item{sent_date}{\code{Date(1)}. The date the message was received. Used for
+date validation and the yesterday-shift. Defaults to \code{Sys.Date()}.}
 }
 \value{
 A character vector the same length as \code{x}, in the form

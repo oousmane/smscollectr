@@ -4,10 +4,15 @@
 \alias{parse_sms}
 \title{Parse a vector of SMS messages (all formats)}
 \usage{
-parse_sms(texts)
+parse_sms(texts, sent_dates = NULL)
 }
 \arguments{
 \item{texts}{\code{character} vector of raw SMS strings.}
+
+\item{sent_dates}{\code{Date} vector the same length as \code{texts}, giving the date
+each message was received. Used to validate and shift SMS dates relative
+to the actual send time rather than \code{Sys.Date()}. \code{NULL} falls back to
+\code{Sys.Date()} for every message.}
 }
 \value{
 A named list with two \code{\link[tibble:tibble]{tibble::tibble()}} elements:

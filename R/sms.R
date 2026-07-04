@@ -194,6 +194,8 @@ is_bad_sms <- function(x, gauge = TRUE) {
 #' @param gauge Logical. If \code{TRUE} (default), fixes against gauge SMS
 #'   rules via \code{is_gauge_sms()}. If \code{FALSE}, throws an error as
 #'   non-gauge fixing is not yet implemented.
+#' @param sent_date `Date(1)`. The date the message was received. Used for
+#'   date validation and the yesterday-shift. Defaults to `Sys.Date()`.
 #'
 #' @return A character vector the same length as \code{x}, in the form
 #'   \code{"ID, DD-MM-YYYY, value"}, or \code{NA_character_} for each SMS
@@ -214,9 +216,10 @@ is_bad_sms <- function(x, gauge = TRUE) {
 #' @seealso [is_bad_sms()], [is_gauge_sms()], [is_no_rain()]
 #'
 #' @export
-fix_sms <- function(x, gauge = TRUE) {
+fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
   if (gauge) {
-    if (length(x) > 1) return(unname(vapply(x, fix_sms, character(1), gauge = gauge)))
+    if (length(x) > 1) return(unname(vapply(x, fix_sms, character(1),
+                                            gauge = gauge, sent_date = sent_date)))
     
     # Normalize missing comma between ID and date
     if (!is_gauge_sms(x)) {
@@ -242,11 +245,11 @@ fix_sms <- function(x, gauge = TRUE) {
     
     # Reject invalid, future, or too-old dates
     d <- as.Date(date, "%d-%m-%Y")
-    if (is.na(d) || d > Sys.Date()) return(NA_character_)
-    if (as.integer(Sys.Date() - d) > .max_sms_age()) return(NA_character_)
-    
-    # If date is yesterday, shift to today
-    if (d == Sys.Date() - 1) date <- format(Sys.Date(), "%d-%m-%Y")
+    if (is.na(d) || d > sent_date) return(NA_character_)
+    if (as.integer(sent_date - d) > .max_sms_age()) return(NA_character_)
+
+    # If date is yesterday relative to sent_date, shift to sent_date
+    if (d == sent_date - 1) date <- format(sent_date, "%d-%m-%Y")
     
     reste <- trimws(paste(c(extra, parts[-(1:2)]), collapse = ","))
     reste <- gsub("^,+|,+$", "", reste)  # remove leading/trailing commas
@@ -593,8 +596,15 @@ parse_sms <- function(texts, sent_dates = NULL) {
   
   # Fix only bad gauge SMS — never touch agro
   gauge_mask <- is_bad_sms(texts, gauge = TRUE) & !is_agro_sms(texts)
-  texts      <- ifelse(gauge_mask, fix_sms(texts), texts)
-  texts      <- texts[!is.na(texts)]
+  if (any(gauge_mask)) {
+    texts[gauge_mask] <- mapply(
+      function(txt, sd) fix_sms(txt, sent_date = sd),
+      texts[gauge_mask],
+      if (!is.null(sent_dates)) sent_dates[gauge_mask] else rep(Sys.Date(), sum(gauge_mask)),
+      SIMPLIFY = TRUE, USE.NAMES = FALSE
+    )
+  }
+  texts <- texts[!is.na(texts)]
   
   if (length(texts) == 0) {
     return(list(gauge = empty(), agro = empty()))
