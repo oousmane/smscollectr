@@ -18,8 +18,10 @@
 #'       `eg_el_abbreviation`, `value`, `flag`.}
 #'     \item{`agro`}{[tibble::tibble()] of parsed agrometeorological
 #'       observations with the same columns.}
-#'     \item{`bad`}{[tibble::tibble()] — subset of the raw sheet rows
-#'       whose SMS could not be parsed or fixed.}
+#'     \item{`bad`}{[tibble::tibble()] — raw sheet rows flagged for review:
+#'       structurally malformed gauge SMS (unfixable), gauge SMS with a future
+#'       body date, and gauge SMS whose body date is older than the sent date
+#'       (late or too-old submissions).}
 #'     \item{`raw`}{[tibble::tibble()] — the full raw sheet as read from
 #'       Google Sheets, with list columns coerced to character.}
 #'   }

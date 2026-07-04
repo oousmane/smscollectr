@@ -281,8 +281,17 @@ fix_sms <- function(x, gauge = TRUE) {
 #' Parse a single rain gauge SMS into a one-row tibble
 #'
 #' Internal helper. Returns a row of `NA`s for any SMS that fails validation
-#' or cannot be parsed. The date is shifted back by one day if it equals
-#' today (observers report the previous day's data in the morning).
+#' or cannot be parsed.
+#'
+#' Date validation rules (relative to `sent_date`):
+#' \describe{
+#'   \item{`body == sent_date`}{Shifted to `sent_date - 1` (morning report —
+#'     observer is reporting the previous day's data).}
+#'   \item{`body > sent_date`}{Rejected — future date.}
+#'   \item{`body < sent_date`, within `max_sms_age`}{Parsed as-is — late
+#'     submission.}
+#'   \item{`body < sent_date`, beyond `max_sms_age`}{Rejected — too old.}
+#' }
 #'
 #' @param txt `character(1)`. A single SMS string.
 #' @param sent_date `Date(1)`. The date the message was received. Used to

@@ -47,8 +47,30 @@ test_that("fix_sms is vectorised", {
   expect_true(is.na(result[2]))
 })
 
+test_that(".parse_sms date rules relative to sent_date", {
+  sent <- as.Date("2026-07-03")
+
+  # body == sent_date → shift to sent_date - 1
+  r <- smscollectr:::.parse_sms("200068P, 03-07-2026, 21", sent_date = sent)
+  expect_equal(r$day, 2L)
+  expect_equal(r$month, 7L)
+
+  # body < sent_date, within max_age → parsed as body date
+  r <- smscollectr:::.parse_sms("200068P, 02-07-2026, 21", sent_date = sent)
+  expect_equal(r$day, 2L)
+
+  # body > sent_date → rejected
+  r <- smscollectr:::.parse_sms("200068P, 04-07-2026, 21", sent_date = sent)
+  expect_true(is.na(r$eg_gh_id))
+
+  # body < sent_date, beyond max_age → rejected
+  r <- smscollectr:::.parse_sms("200068P, 28-06-2026, 21", sent_date = sent)
+  expect_true(is.na(r$eg_gh_id))
+})
+
 test_that("parse_sms returns correct structure", {
-  result <- parse_sms("200068P, 01-07-2026, 125")
+  sent   <- as.Date("2026-07-01")
+  result <- parse_sms("200068P, 01-07-2026, 125", sent_dates = sent)
   expect_named(result, c("gauge", "agro"))
   expect_s3_class(result$gauge, "tbl_df")
   expect_equal(nrow(result$gauge), 1)
@@ -57,16 +79,17 @@ test_that("parse_sms returns correct structure", {
 })
 
 test_that("parse_sms handles TR correctly", {
-  result <- parse_sms("200068P, 01-07-2026, TR")
+  result <- parse_sms("200068P, 01-07-2026, TR", sent_dates = as.Date("2026-07-01"))
   expect_equal(result$gauge$value, 0)
   expect_equal(result$gauge$flag, "T")
 })
 
 test_that("parse_sms deduplicates keeping last", {
+  sent   <- as.Date(c("2026-07-01", "2026-07-01"))
   result <- parse_sms(c(
     "200068P, 01-07-2026, 10",
     "200068P, 01-07-2026, 20"
-  ))
+  ), sent_dates = sent)
   expect_equal(nrow(result$gauge), 1)
   expect_equal(result$gauge$value, 2)  # 20/10
 })
