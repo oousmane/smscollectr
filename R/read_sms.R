@@ -90,8 +90,25 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
     return(list(gauge = empty_tbl, agro = empty_tbl, bad = raw[0, ], raw = raw))
   }
   
-  result     <- parse_sms(texts[valid], sent_dates = sent_dates[valid])
-  result$bad <- raw[valid, ][is_bad_sms(texts[valid]) & !is_agro_sms(texts[valid]), ]
+  result <- parse_sms(texts[valid], sent_dates = sent_dates[valid])
+
+  v_texts <- texts[valid]
+  v_sent  <- sent_dates[valid]
+
+  # Structurally malformed gauge SMS
+  struct_bad <- is_bad_sms(v_texts) & !is_agro_sms(v_texts)
+
+  # Gauge SMS whose body date is older than the sent date (late submission).
+  # Extract the date field from gauge SMS; NA for non-gauge or unparseable.
+  body_dates <- suppressWarnings(as.Date(
+    ifelse(is_gauge_sms(v_texts),
+           sub("^[^,]+,\\s*([0-9]{2}-[0-9]{2}-[0-9]{4}).*$", "\\1", v_texts),
+           NA_character_),
+    format = "%d-%m-%Y"
+  ))
+  late_bad <- !is.na(body_dates) & !is.na(v_sent) & body_dates < v_sent
+
+  result$bad <- raw[valid, ][struct_bad | late_bad, ]
   result$raw <- raw
   result
 }
