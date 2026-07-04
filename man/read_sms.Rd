@@ -26,7 +26,7 @@ observations with the same columns.}
 \item{\code{bad}}{\code{\link[tibble:tibble]{tibble::tibble()}} — raw sheet rows flagged for review,
 with an extra \code{bad_reason} column explaining why each row was flagged.
 Possible values: \code{"malformed"}, \code{"future date"}, \code{"late submission"},
-\code{"too old"}, \code{"malformed + date anomaly"}.}
+\code{"too old"}.}
 \item{\code{raw}}{\code{\link[tibble:tibble]{tibble::tibble()}} — the full raw sheet as read from
 Google Sheets, with list columns coerced to character.}
 }

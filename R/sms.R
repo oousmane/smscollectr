@@ -588,32 +588,37 @@ parse_sms <- function(texts, sent_dates = NULL) {
       dplyr::ungroup()
   }
   
-  texts <- texts[!is.na(texts) & nchar(trimws(texts)) > 0]
-  
+  # Keep sent_dates aligned with texts through all filtering steps
+  keep      <- !is.na(texts) & nchar(trimws(texts)) > 0
+  texts     <- texts[keep]
+  sds       <- if (!is.null(sent_dates)) sent_dates[keep] else rep(Sys.Date(), sum(keep))
+
   if (length(texts) == 0) {
     return(list(gauge = empty(), agro = empty()))
   }
-  
+
   # Fix only bad gauge SMS — never touch agro
   gauge_mask <- is_bad_sms(texts, gauge = TRUE) & !is_agro_sms(texts)
   if (any(gauge_mask)) {
     texts[gauge_mask] <- mapply(
       function(txt, sd) fix_sms(txt, sent_date = sd),
-      texts[gauge_mask],
-      if (!is.null(sent_dates)) sent_dates[gauge_mask] else rep(Sys.Date(), sum(gauge_mask)),
+      texts[gauge_mask], sds[gauge_mask],
       SIMPLIFY = TRUE, USE.NAMES = FALSE
     )
   }
-  texts <- texts[!is.na(texts)]
-  
+
+  # Drop unfixable SMS, keeping sds in sync
+  keep2  <- !is.na(texts)
+  texts  <- texts[keep2]
+  sds    <- sds[keep2]
+
   if (length(texts) == 0) {
     return(list(gauge = empty(), agro = empty()))
   }
-  
-  gauge_idx  <- which(is_gauge_sms(texts))
-  gauge_rows <- purrr::map(gauge_idx, function(i) {
-    sent <- if (!is.null(sent_dates) && i <= length(sent_dates)) sent_dates[i] else Sys.Date()
-    row  <- .parse_sms(texts[i], sent_date = sent) |>
+
+  gauge_mask2 <- is_gauge_sms(texts)
+  gauge_rows  <- purrr::map2(texts[gauge_mask2], sds[gauge_mask2], function(txt, sd) {
+    row <- .parse_sms(txt, sent_date = sd) |>
       dplyr::mutate(
         time               = "06:00",
         eg_el_abbreviation = "RR"
@@ -627,7 +632,7 @@ parse_sms <- function(texts, sent_dates = NULL) {
   }) |>
     purrr::compact() |>
     dplyr::bind_rows()
-  
+
   agro_rows <- purrr::map(texts[is_agro_sms(texts)], .parse_agro_sms) |>
     purrr::compact() |>
     dplyr::bind_rows()

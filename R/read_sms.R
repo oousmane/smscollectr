@@ -21,7 +21,7 @@
 #'     \item{`bad`}{[tibble::tibble()] — raw sheet rows flagged for review,
 #'       with an extra `bad_reason` column explaining why each row was flagged.
 #'       Possible values: `"malformed"`, `"future date"`, `"late submission"`,
-#'       `"too old"`, `"malformed + date anomaly"`.}
+#'       `"too old"`.}
 #'     \item{`raw`}{[tibble::tibble()] — the full raw sheet as read from
 #'       Google Sheets, with list columns coerced to character.}
 #'   }
@@ -113,11 +113,13 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
   bad_raw    <- raw[valid, ][bad_mask, ]
 
   bad_reason <- dplyr::case_when(
-    struct_bad[bad_mask] & date_bad[bad_mask] ~ "malformed + date anomaly",
-    struct_bad[bad_mask]                      ~ "malformed",
-    body_dates[bad_mask] > v_sent[bad_mask]   ~ "future date",
-    as.integer(v_sent[bad_mask] - body_dates[bad_mask]) > .max_sms_age() ~ "too old",
-    TRUE                                      ~ "late submission"
+    # Date reasons take priority — is_bad_sms also catches date issues so a
+    # future/too-old SMS would appear in both struct_bad and date_bad.
+    !is.na(body_dates[bad_mask]) & body_dates[bad_mask] > v_sent[bad_mask]  ~ "future date",
+    !is.na(body_dates[bad_mask]) &
+      as.integer(v_sent[bad_mask] - body_dates[bad_mask]) > .max_sms_age() ~ "too old",
+    date_bad[bad_mask]                                                       ~ "late submission",
+    TRUE                                                                     ~ "malformed"
   )
 
   result$bad <- dplyr::mutate(bad_raw, bad_reason = bad_reason)
