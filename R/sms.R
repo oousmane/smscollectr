@@ -285,13 +285,15 @@ fix_sms <- function(x, gauge = TRUE) {
 #' today (observers report the previous day's data in the morning).
 #'
 #' @param txt `character(1)`. A single SMS string.
+#' @param sent_date `Date(1)`. The date the message was received. Used to
+#'   validate and shift SMS dates. Defaults to `Sys.Date()`.
 #'
 #' @return A [tibble::tibble()] with columns `eg_gh_id`, `year`, `month`,
 #'   `day`, `value`, and `flag`. All columns are `NA` when parsing fails.
 #'
 #' @keywords internal
 #' @noRd
-.parse_sms <- function(txt) {
+.parse_sms <- function(txt, sent_date = Sys.Date()) {
   na_row <- tibble::tibble(
     eg_gh_id = NA_character_,
     year     = NA_integer_,
@@ -310,9 +312,9 @@ fix_sms <- function(x, gauge = TRUE) {
   d <- as.Date(sms_parts[2], "%d-%m-%Y")
   
   if (is.na(d)) return(na_row)
-  if (d == Sys.Date()) d <- d - 1       # Morning report → shift to yesterday
-  if (d > Sys.Date()) return(na_row)    # Future date → reject
-  if (as.integer(Sys.Date() - d) > .max_sms_age()) return(na_row)
+  if (d == sent_date) d <- d - 1          # sent today → data is from yesterday
+  if (d > sent_date) return(na_row)       # future date → reject
+  if (as.integer(sent_date - d) > .max_sms_age()) return(na_row)
   
   # Station ID must not exceed 200166
   id_num <- as.integer(substr(gsub("\\s+", "", sms_parts[1]), 1, 6))
@@ -522,6 +524,10 @@ fix_sms <- function(x, gauge = TRUE) {
 #' the last occurrence within each tibble.
 #'
 #' @param texts `character` vector of raw SMS strings.
+#' @param sent_dates `Date` vector the same length as `texts`, giving the date
+#'   each message was received. Used to validate and shift SMS dates relative
+#'   to the actual send time rather than `Sys.Date()`. `NULL` falls back to
+#'   `Sys.Date()` for every message.
 #'
 #' @return A named list with two [tibble::tibble()] elements:
 #'   \describe{
@@ -540,8 +546,10 @@ fix_sms <- function(x, gauge = TRUE) {
 #' @importFrom dplyr bind_rows filter if_all everything group_by slice_tail
 #'   ungroup mutate select
 #' @export
-parse_sms <- function(texts) {
+parse_sms <- function(texts, sent_dates = NULL) {
   if (!is.character(texts)) stop("`texts` must be a character vector.", call. = FALSE)
+  if (!is.null(sent_dates) && length(sent_dates) != length(texts))
+    stop("`sent_dates` must be the same length as `texts`.", call. = FALSE)
   
   empty <- function() {
     tibble::tibble(
@@ -583,8 +591,10 @@ parse_sms <- function(texts) {
     return(list(gauge = empty(), agro = empty()))
   }
   
-  gauge_rows <- purrr::map(texts[is_gauge_sms(texts)], function(txt) {
-    row <- .parse_sms(txt) |>
+  gauge_idx  <- which(is_gauge_sms(texts))
+  gauge_rows <- purrr::map(gauge_idx, function(i) {
+    sent <- if (!is.null(sent_dates) && i <= length(sent_dates)) sent_dates[i] else Sys.Date()
+    row  <- .parse_sms(texts[i], sent_date = sent) |>
       dplyr::mutate(
         time               = "06:00",
         eg_el_abbreviation = "RR"

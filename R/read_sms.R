@@ -70,7 +70,13 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
   }
   
   texts <- as.character(dplyr::pull(raw, {{ col }}))
-  
+
+  # Parse sent date from raw$date (e.g. "July 4, 2026 at 12:49AM")
+  sent_dates <- as.Date(
+    sub("\\s+at\\s+.*$", "", raw$date),
+    format = "%B %d, %Y"
+  )
+
   empty_tbl <- tibble::tibble(
     eg_gh_id = character(), year = integer(), month = integer(),
     day = integer(), time = character(), eg_el_abbreviation = character(),
@@ -84,7 +90,7 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
     return(list(gauge = empty_tbl, agro = empty_tbl, bad = raw[0, ], raw = raw))
   }
   
-  result     <- parse_sms(texts[valid])
+  result     <- parse_sms(texts[valid], sent_dates = sent_dates[valid])
   result$bad <- raw[valid, ][is_bad_sms(texts[valid]) & !is_agro_sms(texts[valid]), ]
   result$raw <- raw
   result
