@@ -330,6 +330,8 @@ written to plain text files.
   : Attempt to fix a malformed SMS
 - [`get_sheet_url()`](https://oousmane.github.io/smscollectr/reference/get_sheet_url.md)
   : Retrieve a stored Google Sheet URL from the system credential store
+- [`get_sms_max_age()`](https://oousmane.github.io/smscollectr/reference/get_sms_max_age.md)
+  : Get the maximum SMS age
 - [`is_agro_sms()`](https://oousmane.github.io/smscollectr/reference/is_agro_sms.md)
   : Check whether a string is a valid agrometeorological SMS
 - [`is_bad_sms()`](https://oousmane.github.io/smscollectr/reference/is_bad_sms.md)
@@ -344,6 +346,8 @@ written to plain text files.
   : Read and parse SMS messages from a Google Sheet
 - [`set_sheet_url()`](https://oousmane.github.io/smscollectr/reference/set_sheet_url.md)
   : Store a Google Sheet URL in the system credential store
+- [`set_sms_max_age()`](https://oousmane.github.io/smscollectr/reference/set_sms_max_age.md)
+  : Set the maximum SMS age
 - [`sms_auth()`](https://oousmane.github.io/smscollectr/reference/sms_auth.md)
   : Authenticate with Google Sheets
 - [`to_element_id()`](https://oousmane.github.io/smscollectr/reference/to_element_id.md)

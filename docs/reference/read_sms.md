@@ -48,7 +48,9 @@ A named list with four elements:
 - `bad`:
 
   [`tibble::tibble()`](https://tibble.tidyverse.org/reference/tibble.html)
-  — subset of the raw sheet rows whose SMS could not be parsed or fixed.
+  — raw sheet rows flagged for review, with an extra `bad_reason` column
+  explaining why each row was flagged. Possible values: `"malformed"`,
+  `"future date"`, `"late submission"`, `"too old"`.
 
 - `raw`:
 
