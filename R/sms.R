@@ -277,7 +277,17 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
     return(paste(id, date, val, sep = ", "))
   }
   
-  stop("non-gauge SMS fixing is not yet implemented.", call. = FALSE)
+  if (!gauge){
+    
+    # if (length(x) > 1) return(unname(vapply(x, fix_sms, character(1),
+    #                                         gauge = gauge, sent_date = sent_date)))
+    # if (!is_agro_sms(x)) return(NA_character_)
+    
+    
+    stop("non-gauge SMS fixing is not yet implemented.", call. = FALSE)  
+  }
+  
+  
 }
 
 
@@ -399,6 +409,7 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
     return(list(value = 0, flag = NA_character_))
   }
   
+  
   # Numeric
   v <- suppressWarnings(as.numeric(raw))
   if (is.na(v)) return(list(value = -9999, flag = "M"))
@@ -475,6 +486,18 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
     trimws(sub(pattern, "\\1", match[1]))
   }
   
+  # .raw <- function(key) {
+  #   key <- key[["key"]]
+  #   pattern <- paste0("^\\s*", key, "\\s*=\\s*(.+?)\\s*$")
+  #   match <- grep(pattern, lines, value = TRUE)
+  #   
+  #   if (length(match) == 0) {
+  #     return(NA_character_)
+  #   }
+  #   
+  #   sub(pattern, "\\1", match[1])
+  # }
+  
   # Variable specifications: internal name -> SMS key + divisor
   vars <- list(
     Tn     = list(key = "Tn",    divisor = 10),
@@ -512,7 +535,8 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
       value              = parsed$value,
       flag               = parsed$flag
     )
-  })
+  }
+  )
   
   dplyr::bind_rows(rows)
 }
@@ -559,9 +583,11 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
 #'   ungroup mutate select
 #' @export
 parse_sms <- function(texts, sent_dates = NULL) {
-  if (!is.character(texts)) stop("`texts` must be a character vector.", call. = FALSE)
+  if (!is.character(texts))
+    stop("`texts` must be a character vector.", call. = FALSE)
+  
   if (!is.null(sent_dates) && length(sent_dates) != length(texts))
-    stop("`sent_dates` must be the same length as `texts`.", call. = FALSE)
+    stop("`sent_dates` must have the same length as `texts`.", call. = FALSE)
   
   empty <- function() {
     tibble::tibble(
