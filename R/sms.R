@@ -13,14 +13,16 @@
 #' @return A `logical` vector the same length as `text`.
 #'
 #' @examples
-#' is_gauge_sms("200001S, 03-06-2026, 125")   # TRUE
-#' is_gauge_sms("200096 P, 01-07-2026, 67")   # TRUE
-#' is_gauge_sms("hello world")                 # FALSE
-#' is_gauge_sms(NULL)                          # logical(0)
+#' is_gauge_sms("200001S, 03-06-2026, 125") # TRUE
+#' is_gauge_sms("200096 P, 01-07-2026, 67") # TRUE
+#' is_gauge_sms("hello world") # FALSE
+#' is_gauge_sms(NULL) # logical(0)
 #'
 #' @export
 is_gauge_sms <- function(text = NULL) {
-  if (is.null(text)) return(logical(0))
+  if (is.null(text)) {
+    return(logical(0))
+  }
   if (!is.character(text)) stop("`text` must be character")
   grepl("^[0-9]{6}\\s*[PAC]\\s*,", trimws(text))
 }
@@ -39,31 +41,40 @@ is_gauge_sms <- function(text = NULL) {
 #'
 #' @examples
 #' msg <- "DEDOUGOU\n11-05-2026\nTn= 305\nTx= 438"
-#' is_agro_sms(msg)                          # TRUE
-#' is_agro_sms("200001S, 03-06-2026, 125")   # FALSE
-#' is_agro_sms(NULL)                         # logical(0)
+#' is_agro_sms(msg) # TRUE
+#' is_agro_sms("200001S, 03-06-2026, 125") # FALSE
+#' is_agro_sms(NULL) # logical(0)
 #'
 #' @seealso [is_gauge_sms()]
 #' @export
 is_agro_sms <- function(text = NULL) {
-  if (is.null(text)) return(logical(0))
+  if (is.null(text)) {
+    return(logical(0))
+  }
   if (!is.character(text)) stop("`text` must be character", call. = FALSE)
-  
+
   vapply(text, function(txt) {
     # Handle both real newlines and literal \n
-    sep   <- if (grepl("\n", txt, fixed = TRUE)) "\n" else "\\n"
+    sep <- if (grepl("\n", txt, fixed = TRUE)) "\n" else "\\n"
     lines <- trimws(strsplit(txt, sep, fixed = TRUE)[[1]])
     lines <- lines[nchar(lines) > 0]
-    
-    if (length(lines) != 17) return(FALSE)
-    if (!grepl("^[A-Za-z][A-Za-z0-9 _-]*$", lines[1])) return(FALSE)
-    if (!grepl("^\\d{2}-\\d{2}-\\d{4}$",    lines[2])) return(FALSE)
-    
-    valid_keys  <- c("Tn", "Tx", "TnSol", "TxSol", "T-10", "T-20", "T-50",
-                     "Un", "Ux", "Vent", "Inso", "e", "BAC", "PICHE", "RA")
+
+    if (length(lines) != 17) {
+      return(FALSE)
+    }
+    if (!grepl("^[A-Za-z][A-Za-z0-9 _-]*$", lines[1])) {
+      return(FALSE)
+    }
+    if (!grepl("^\\d{2}-\\d{2}-\\d{4}$", lines[2])) {
+      return(FALSE)
+    }
+
+    valid_keys <- c(
+      "Tn", "Tx", "TnSol", "TxSol", "T-10", "T-20", "T-50",
+      "Un", "Ux", "Vent", "Inso", "e", "BAC", "PICHE", "RA"
+    )
     key_pattern <- paste0("^(", paste(valid_keys, collapse = "|"), ")=")
     all(grepl(key_pattern, lines[3:17]))
-    
   }, logical(1), USE.NAMES = FALSE)
 }
 
@@ -78,10 +89,10 @@ is_agro_sms <- function(text = NULL) {
 #' @return A logical scalar.
 #'
 #' @examples
-#' is_no_rain("pas de pluie")                        # TRUE
-#' is_no_rain("Pa de plu")                           # TRUE
-#' is_no_rain("boussouma n'a pas eu de pluie")       # TRUE
-#' is_no_rain("126")                                  # FALSE
+#' is_no_rain("pas de pluie") # TRUE
+#' is_no_rain("Pa de plu") # TRUE
+#' is_no_rain("boussouma n'a pas eu de pluie") # TRUE
+#' is_no_rain("126") # FALSE
 #'
 #' @export
 is_no_rain <- function(x) {
@@ -113,48 +124,58 @@ is_no_rain <- function(x) {
 #' @return A logical scalar. \code{TRUE} if malformed, \code{FALSE} if valid.
 #'
 #' @examples
-#' is_bad_sms("200068P, 24-06-2026, 21")              # FALSE
-#' is_bad_sms("200068P, 24-06-2026, TR")              # FALSE
-#' is_bad_sms("200068P, 24-06-2026, 12mm")            # TRUE
-#' is_bad_sms("200068P, 24-06-2026, pas de pluie")    # FALSE
-#' is_bad_sms("200068P, 24-06-2026,")                 # TRUE
-#' is_bad_sms("200286P, 24-06-2026, 21")              # TRUE — ID out of range
+#' is_bad_sms("200068P, 24-06-2026, 21") # FALSE
+#' is_bad_sms("200068P, 24-06-2026, TR") # FALSE
+#' is_bad_sms("200068P, 24-06-2026, 12mm") # TRUE
+#' is_bad_sms("200068P, 24-06-2026, pas de pluie") # FALSE
+#' is_bad_sms("200068P, 24-06-2026,") # TRUE
+#' is_bad_sms("200286P, 24-06-2026, 21") # TRUE — ID out of range
 #'
 #' @seealso [is_gauge_sms()], [is_no_rain()], [fix_sms()]
 #'
 #' @export
 is_bad_sms <- function(x, gauge = TRUE) {
-  if (length(x) > 1) return(vapply(x, is_bad_sms, logical(1), gauge = gauge))
-  
+  if (length(x) > 1) {
+    return(vapply(x, is_bad_sms, logical(1), gauge = gauge))
+  }
+
   if (gauge) {
-    if (!is_gauge_sms(x)) return(TRUE)
-    
+    if (!is_gauge_sms(x)) {
+      return(TRUE)
+    }
+
     lines <- trimws(strsplit(x, "\n")[[1]])
     lines <- lines[nzchar(lines)]
-    
-    if (length(lines) != 1) return(TRUE)
-    
+
+    if (length(lines) != 1) {
+      return(TRUE)
+    }
+
     parts <- trimws(strsplit(lines, ",")[[1]])
-    
-    if (length(parts) != 3) return(TRUE)
-    
+
+    if (length(parts) != 3) {
+      return(TRUE)
+    }
+
     # Station ID must not exceed 200166
     id_num <- as.integer(substr(gsub("\\s+", "", parts[1]), 1, 6))
-    if (!is.na(id_num) && id_num > 200166) return(TRUE)
-    
+    if (!is.na(id_num) && id_num > 200166) {
+      return(TRUE)
+    }
+
     d <- as.Date(parts[2], "%d-%m-%Y")
-    
+
     return(
-      !grepl("^\\d{2}-\\d{2}-\\d{4}$", parts[2])       ||
-        (!grepl("^\\d{1,4}$", parts[3])                   &&
-           !grepl("^=?TR$", parts[3], ignore.case = TRUE)   &&
-           !is_no_rain(parts[3]))                            ||
-        is.na(d)                                           ||
-        d > Sys.Date()                                     ||
+      !grepl("^\\d{2}-\\d{2}-\\d{4}$", parts[2]) ||
+        (!grepl("^\\d{1,4}$", parts[3]) &&
+          !grepl("^=?TR$", parts[3], ignore.case = TRUE) &&
+          !is_no_rain(parts[3])) ||
+        is.na(d) ||
+        d > Sys.Date() ||
         as.integer(Sys.Date() - d) > .max_sms_age()
     )
   }
-  
+
   # Agro
   !is_agro_sms(x)
 }
@@ -202,92 +223,110 @@ is_bad_sms <- function(x, gauge = TRUE) {
 #'   that cannot be fixed.
 #'
 #' @examples
-#' fix_sms("200068P, 24-06-2026, 12,6")                          # "200068P, 24-06-2026, 126"
-#' fix_sms("200068P, 24-06-2026, 12mm")                          # "200068P, 24-06-2026, 12"
-#' fix_sms("200053A , 30-06-2026, 1.0")                          # "200053A, 30-06-2026, 10"
-#' fix_sms("200068P, 24-06-2026, TR")                            # "200068P, 24-06-2026, TR"
-#' fix_sms("200068P, 24-06-2026, traces")                        # "200068P, 24-06-2026, TR"
-#' fix_sms("200068P, 24-06-2026, pas de pluie")                  # "200068P, 24-06-2026, 0"
+#' fix_sms("200068P, 24-06-2026, 12,6") # "200068P, 24-06-2026, 126"
+#' fix_sms("200068P, 24-06-2026, 12mm") # "200068P, 24-06-2026, 12"
+#' fix_sms("200053A , 30-06-2026, 1.0") # "200053A, 30-06-2026, 10"
+#' fix_sms("200068P, 24-06-2026, TR") # "200068P, 24-06-2026, TR"
+#' fix_sms("200068P, 24-06-2026, traces") # "200068P, 24-06-2026, TR"
+#' fix_sms("200068P, 24-06-2026, pas de pluie") # "200068P, 24-06-2026, 0"
 #' fix_sms("200034P, 23-06-2026, boussouma n'a pas eu de pluie") # "200034P, 23-06-2026, 0"
-#' fix_sms("200043A, 03-07-2026, 008 19h")                       # "200043A, 03-07-2026, 8"
-#' fix_sms("200043A, 03-07-2026, 1730 a 1830 008")               # "200043A, 03-07-2026, 8"
-#' fix_sms("32mm enregistre le 12/06/26")                        # NA
+#' fix_sms("200043A, 03-07-2026, 008 19h") # "200043A, 03-07-2026, 8"
+#' fix_sms("200043A, 03-07-2026, 1730 a 1830 008") # "200043A, 03-07-2026, 8"
+#' fix_sms("32mm enregistre le 12/06/26") # NA
 #'
 #' @seealso [is_bad_sms()], [is_gauge_sms()], [is_no_rain()]
 #'
 #' @export
 fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
   if (gauge) {
-    if (length(x) > 1) return(unname(vapply(x, fix_sms, character(1),
-                                            gauge = gauge, sent_date = sent_date)))
-    
+    if (length(x) > 1) {
+      return(unname(vapply(x, fix_sms, character(1),
+        gauge = gauge, sent_date = sent_date
+      )))
+    }
+
     # Normalize missing comma between ID and date
     if (!is_gauge_sms(x)) {
-      x <- gsub("^([0-9]{6}\\s*[PSAC])\\s+([0-9]{2}-[0-9]{2}-[0-9]{4})",
-                "\\1, \\2", x, ignore.case = TRUE)
+      x <- gsub("^([0-9]{6}\\s*[PAC])\\s+([0-9]{2}-[0-9]{2}-[0-9]{4})",
+        "\\1, \\2", x,
+        ignore.case = TRUE
+      )
     }
-    
-    if (!is_gauge_sms(x)) return(NA_character_)
-    
+
+    if (!is_gauge_sms(x)) {
+      return(NA_character_)
+    }
+
     lines <- trimws(strsplit(x, "\n")[[1]])
     lines <- lines[nzchar(lines)]
-    last  <- lines[length(lines)]
+    last <- lines[length(lines)]
     parts <- trimws(strsplit(last, ",")[[1]])
-    
-    id       <- gsub("\\s+", "", parts[1])
+
+    id <- gsub("\\s+", "", parts[1])
     date_raw <- trimws(parts[2])
-    
+
     # Extract valid date prefix; capture leftover digits after date
-    date  <- regmatches(date_raw, regexpr("^\\d{2}-\\d{2}-\\d{4}", date_raw))
+    date <- regmatches(date_raw, regexpr("^\\d{2}-\\d{2}-\\d{4}", date_raw))
     extra <- gsub("^\\d{2}-\\d{2}-\\d{4}", "", date_raw)
-    
-    if (length(date) == 0) return(NA_character_)
-    
-    # Reject invalid, future, or too-old dates
+
     d <- as.Date(date, "%d-%m-%Y")
-    if (is.na(d) || d > sent_date) return(NA_character_)
-    if (as.integer(sent_date - d) > .max_sms_age()) return(NA_character_)
+
+    if (is.na(d)) {
+      return(NA_character_)
+    }
+    if (is.na(sent_date)) {
+      return(NA_character_)
+    }
+    if (d > sent_date) {
+      return(NA_character_)
+    }
+    if (as.integer(sent_date - d) > .max_sms_age()) { # <- contrôle d'âge manquant
+      return(NA_character_)
+    }
 
     # If date is yesterday relative to sent_date, shift to sent_date
     if (d == sent_date - 1) date <- format(sent_date, "%d-%m-%Y")
-    
+
     reste <- trimws(paste(c(extra, parts[-(1:2)]), collapse = ","))
-    reste <- gsub("^,+|,+$", "", reste)  # remove leading/trailing commas
+    reste <- gsub("^,+|,+$", "", reste) # remove leading/trailing commas
     reste <- trimws(reste)
 
-    val <- if (is_no_rain(reste)) "0" else
-      if (grepl("^=?tr(aces?)?$", reste, ignore.case = TRUE)) "TR" else {
-        
-        # Remove hour annotations (e.g. "19h", "07h30", "19heures")
-        reste <- gsub("[0-9]{1,2}\\s*h(eure[s]?)?([0-9]{0,2})?", "",
-                      reste, ignore.case = TRUE)
-        
-        # Remove date-like patterns (e.g. "02/07/2026", "02-07-2026")
-        reste <- gsub("[0-9]{2}[/-][0-9]{2}[/-][0-9]{2,4}", "", reste)
-        
-        # Extract numeric groups; filter out HHMM time-like values (0000-2359)
-        nums    <- regmatches(reste, gregexpr("[0-9]+", reste))[[1]]
-        is_time <- nchar(nums) == 4 & as.integer(nums) <= 2359
-        v       <- paste(nums[!is_time], collapse = "")
-        
-        if (!nzchar(v)) return(NA_character_)
-        as.character(as.integer(v))
+    val <- if (is_no_rain(reste)) {
+      "0"
+    } else if (grepl("^=?tr(aces?)?$", reste, ignore.case = TRUE)) {
+      "TR"
+    } else {
+      # Remove hour annotations (e.g. "19h", "07h30", "19heures")
+      reste <- gsub("[0-9]{1,2}\\s*h(eure[s]?)?([0-9]{0,2})?", "",
+        reste,
+        ignore.case = TRUE
+      )
+
+      # Remove date-like patterns (e.g. "02/07/2026", "02-07-2026")
+      reste <- gsub("[0-9]{2}[/-][0-9]{2}[/-][0-9]{2,4}", "", reste)
+
+      # Extract numeric groups; filter out HHMM time-like values (0000-2359)
+      nums <- regmatches(reste, gregexpr("[0-9]+", reste))[[1]]
+      is_time <- nchar(nums) == 4 & as.integer(nums) <= 2359
+      v <- paste(nums[!is_time], collapse = "")
+
+      if (!nzchar(v)) {
+        return(NA_character_)
       }
-    
+      as.character(as.integer(v))
+    }
+
     return(paste(id, date, val, sep = ", "))
   }
-  
-  if (!gauge){
-    
+
+  if (!gauge) {
     # if (length(x) > 1) return(unname(vapply(x, fix_sms, character(1),
     #                                         gauge = gauge, sent_date = sent_date)))
     # if (!is_agro_sms(x)) return(NA_character_)
-    
-    
-    stop("non-gauge SMS fixing is not yet implemented.", call. = FALSE)  
+
+
+    stop("non-gauge SMS fixing is not yet implemented.", call. = FALSE)
   }
-  
-  
 }
 
 
@@ -324,33 +363,49 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
     value    = NA_real_,
     flag     = NA_character_
   )
-  
-  if (!is.character(txt) || length(txt) != 1) return(na_row)
-  if (!is_gauge_sms(txt)) return(na_row)
-  
+
+  if (!is.character(txt) || length(txt) != 1) {
+    return(na_row)
+  }
+  if (!is_gauge_sms(txt)) {
+    return(na_row)
+  }
+
   sms_parts <- trimws(strsplit(txt, ",")[[1]])
-  if (length(sms_parts) < 3) return(na_row)
-  
+  if (length(sms_parts) < 3) {
+    return(na_row)
+  }
+
   d <- as.Date(sms_parts[2], "%d-%m-%Y")
-  
-  if (is.na(d)) return(na_row)
-  if (d == sent_date) d <- d - 1          # sent today → data is from yesterday
-  if (d > sent_date) return(na_row)       # future date → reject
-  if (as.integer(sent_date - d) > .max_sms_age()) return(na_row)
-  
+
+  if (is.na(d)) {
+    return(na_row)
+  }
+  if (d == sent_date) d <- d - 1 # sent today → data is from yesterday
+  if (d > sent_date) {
+    return(na_row)
+  } # future date → reject
+  if (as.integer(sent_date - d) > .max_sms_age()) {
+    return(na_row)
+  }
+
   # Station ID must not exceed 200166
   id_num <- as.integer(substr(gsub("\\s+", "", sms_parts[1]), 1, 6))
-  if (!is.na(id_num) && id_num > 200166) return(na_row)
-  
+  if (!is.na(id_num) && id_num > 200166) {
+    return(na_row)
+  }
+
   if (tolower(trimws(sms_parts[3])) == "tr") {
     value <- 0
-    flag  <- "T"
+    flag <- "T"
   } else {
     value <- suppressWarnings(as.numeric(sms_parts[3])) / 10
-    flag  <- NA_character_
-    if (is.na(value)) return(na_row)
+    flag <- NA_character_
+    if (is.na(value)) {
+      return(na_row)
+    }
   }
-  
+
   tibble::tibble(
     eg_gh_id = gsub("\\s+", "", sms_parts[1]),
     year     = as.integer(format(d, "%Y")),
@@ -393,27 +448,29 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
 #' @noRd
 .parse_val <- function(raw, divisor = 10) {
   raw <- trimws(raw)
-  
+
   # Trace — TR / Tr / tr / tR
   if (grepl("^[Tt][Rr]$", raw)) {
     return(list(value = 0, flag = "T"))
   }
-  
+
   # Missing — xx / XX / Xx / xxx / XXX / Xxx (any case, 2 or 3 chars)
   if (grepl("^[Xx]{2,3}$", raw)) {
     return(list(value = -9999, flag = "M"))
   }
-  
+
   # Not measured — NT / Nt / nT / nt -> 0, no flag
   if (grepl("^[Nn][Tt]$", raw)) {
     return(list(value = 0, flag = NA_character_))
   }
-  
-  
+
+
   # Numeric
   v <- suppressWarnings(as.numeric(raw))
-  if (is.na(v)) return(list(value = -9999, flag = "M"))
-  
+  if (is.na(v)) {
+    return(list(value = -9999, flag = "M"))
+  }
+
   list(value = v / divisor, flag = NA_character_)
 }
 
@@ -458,68 +515,76 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
     value              = NA_real_,
     flag               = NA_character_
   )
-  
-  if (!is.character(txt) || length(txt) != 1) return(na_row)
-  if (!is_agro_sms(txt)) return(na_row)
-  
+
+  if (!is.character(txt) || length(txt) != 1) {
+    return(na_row)
+  }
+  if (!is_agro_sms(txt)) {
+    return(na_row)
+  }
+
   # Split — handle both real newlines and literal \n
-  sep   <- if (grepl("\n", txt, fixed = TRUE)) "\n" else "\\n"
+  sep <- if (grepl("\n", txt, fixed = TRUE)) "\n" else "\\n"
   lines <- trimws(strsplit(txt, sep, fixed = TRUE)[[1]])
   lines <- lines[nchar(lines) > 0]
-  
+
   # Line 1 — station name -> CLIDATA station ID
   eg_gh_id <- to_station_id(trimws(lines[1]))
-  
+
   # Line 2 — full date DD-MM-YYYY
   d <- as.Date(trimws(lines[2]), "%d-%m-%Y")
-  if (is.na(d)) return(na_row)
-  
-  year  <- as.integer(format(d, "%Y"))
+  if (is.na(d)) {
+    return(na_row)
+  }
+
+  year <- as.integer(format(d, "%Y"))
   month <- as.integer(format(d, "%m"))
-  day   <- as.integer(format(d, "%d"))
-  
+  day <- as.integer(format(d, "%d"))
+
   # Extract raw string for a given SMS key
   .raw <- function(key) {
     pattern <- paste0("^", key, "=\\s*(.+)$")
-    match   <- grep(pattern, lines, value = TRUE)
-    if (length(match) == 0) return(NA_character_)
+    match <- grep(pattern, lines, value = TRUE)
+    if (length(match) == 0) {
+      return(NA_character_)
+    }
     trimws(sub(pattern, "\\1", match[1]))
   }
-  
+
   # .raw <- function(key) {
   #   key <- key[["key"]]
   #   pattern <- paste0("^\\s*", key, "\\s*=\\s*(.+?)\\s*$")
   #   match <- grep(pattern, lines, value = TRUE)
-  #   
+  #
   #   if (length(match) == 0) {
   #     return(NA_character_)
   #   }
-  #   
+  #
   #   sub(pattern, "\\1", match[1])
   # }
-  
+
   # Variable specifications: internal name -> SMS key + divisor
   vars <- list(
-    Tn     = list(key = "Tn",    divisor = 10),
-    Tx     = list(key = "Tx",    divisor = 10),
+    Tn     = list(key = "Tn", divisor = 10),
+    Tx     = list(key = "Tx", divisor = 10),
     TnSol  = list(key = "TnSol", divisor = 10),
     TxSol  = list(key = "TxSol", divisor = 10),
-    `T-10` = list(key = "T-10",  divisor = 10),
-    `T-20` = list(key = "T-20",  divisor = 10),
-    `T-50` = list(key = "T-50",  divisor = 10),
-    Un     = list(key = "Un",    divisor = 1),
-    Ux     = list(key = "Ux",    divisor = 1),
-    Vent   = list(key = "Vent",  divisor = 1),
-    Inso   = list(key = "Inso",  divisor = 10),
-    e      = list(key = "e",     divisor = 10),
-    BAC    = list(key = "BAC",   divisor = 10),
+    `T-10` = list(key = "T-10", divisor = 10),
+    `T-20` = list(key = "T-20", divisor = 10),
+    `T-50` = list(key = "T-50", divisor = 10),
+    Un     = list(key = "Un", divisor = 1),
+    Ux     = list(key = "Ux", divisor = 1),
+    Vent   = list(key = "Vent", divisor = 1),
+    Inso   = list(key = "Inso", divisor = 10),
+    e      = list(key = "e", divisor = 10),
+    BAC    = list(key = "BAC", divisor = 10),
     PICHE  = list(key = "PICHE", divisor = 10),
-    RA     = list(key = "RA",    divisor = 10)
+    RA     = list(key = "RA", divisor = 10)
   )
-  
+
   # Parse all variables into a long tibble — one row per variable
   rows <- purrr::imap(vars, function(spec, var_name) {
-    raw    <- .raw(spec$key)
+    raw <- .raw(spec$key)
     parsed <- if (is.na(raw)) {
       list(value = NA_real_, flag = NA_character_)
     } else {
@@ -535,9 +600,8 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
       value              = parsed$value,
       flag               = parsed$flag
     )
-  }
-  )
-  
+  })
+
   dplyr::bind_rows(rows)
 }
 
@@ -583,12 +647,14 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
 #'   ungroup mutate select
 #' @export
 parse_sms <- function(texts, sent_dates = NULL) {
-  if (!is.character(texts))
+  if (!is.character(texts)) {
     stop("`texts` must be a character vector.", call. = FALSE)
-  
-  if (!is.null(sent_dates) && length(sent_dates) != length(texts))
+  }
+
+  if (!is.null(sent_dates) && length(sent_dates) != length(texts)) {
     stop("`sent_dates` must have the same length as `texts`.", call. = FALSE)
-  
+  }
+
   empty <- function() {
     tibble::tibble(
       eg_gh_id           = character(),
@@ -601,9 +667,11 @@ parse_sms <- function(texts, sent_dates = NULL) {
       flag               = character()
     )
   }
-  
+
   .dedup <- function(df) {
-    if (nrow(df) == 0) return(df)
+    if (nrow(df) == 0) {
+      return(df)
+    }
     df |>
       dplyr::filter(!dplyr::if_all(dplyr::everything(), is.na)) |>
       dplyr::group_by(
@@ -613,11 +681,11 @@ parse_sms <- function(texts, sent_dates = NULL) {
       dplyr::slice_tail(n = 1) |>
       dplyr::ungroup()
   }
-  
+
   # Keep sent_dates aligned with texts through all filtering steps
-  keep      <- !is.na(texts) & nchar(trimws(texts)) > 0
-  texts     <- texts[keep]
-  sds       <- if (!is.null(sent_dates)) sent_dates[keep] else rep(Sys.Date(), sum(keep))
+  keep <- !is.na(texts) & nchar(trimws(texts)) > 0
+  texts <- texts[keep]
+  sds <- if (!is.null(sent_dates)) sent_dates[keep] else rep(Sys.Date(), sum(keep))
 
   if (length(texts) == 0) {
     return(list(gauge = empty(), agro = empty()))
@@ -634,26 +702,30 @@ parse_sms <- function(texts, sent_dates = NULL) {
   }
 
   # Drop unfixable SMS, keeping sds in sync
-  keep2  <- !is.na(texts)
-  texts  <- texts[keep2]
-  sds    <- sds[keep2]
+  keep2 <- !is.na(texts)
+  texts <- texts[keep2]
+  sds <- sds[keep2]
 
   if (length(texts) == 0) {
     return(list(gauge = empty(), agro = empty()))
   }
 
   gauge_mask2 <- is_gauge_sms(texts)
-  gauge_rows  <- purrr::map2(texts[gauge_mask2], sds[gauge_mask2], function(txt, sd) {
+  gauge_rows <- purrr::map2(texts[gauge_mask2], sds[gauge_mask2], function(txt, sd) {
     row <- .parse_sms(txt, sent_date = sd) |>
       dplyr::mutate(
         time               = "06:00",
         eg_el_abbreviation = "RR"
       ) |>
       dplyr::select(
-        dplyr::all_of(c("eg_gh_id", "year", "month", "day",
-                        "time", "eg_el_abbreviation", "value", "flag"))
+        dplyr::all_of(c(
+          "eg_gh_id", "year", "month", "day",
+          "time", "eg_el_abbreviation", "value", "flag"
+        ))
       )
-    if (is.na(row$eg_gh_id)) return(NULL)
+    if (is.na(row$eg_gh_id)) {
+      return(NULL)
+    }
     row
   }) |>
     purrr::compact() |>
@@ -662,10 +734,10 @@ parse_sms <- function(texts, sent_dates = NULL) {
   agro_rows <- purrr::map(texts[is_agro_sms(texts)], .parse_agro_sms) |>
     purrr::compact() |>
     dplyr::bind_rows()
-  
+
   list(
     gauge = .dedup(if (nrow(gauge_rows) == 0) empty() else gauge_rows),
-    agro  = .dedup(if (nrow(agro_rows)  == 0) empty() else agro_rows)
+    agro  = .dedup(if (nrow(agro_rows) == 0) empty() else agro_rows)
   )
 }
 
@@ -690,8 +762,8 @@ parse_sms <- function(texts, sent_dates = NULL) {
 #' @return Invisibly returns `days`.
 #'
 #' @examples
-#' set_sms_max_age(10)   # accept SMS up to 10 days old
-#' set_sms_max_age()     # reset to default (3)
+#' set_sms_max_age(10) # accept SMS up to 10 days old
+#' set_sms_max_age() # reset to default (3)
 #'
 #' @seealso [get_sms_max_age()]
 #' @export
@@ -710,7 +782,7 @@ set_sms_max_age <- function(days = 3L) {
 #' @return An `integer` scalar.
 #'
 #' @examples
-#' get_sms_max_age()   # 3 (default)
+#' get_sms_max_age() # 3 (default)
 #'
 #' @seealso [set_sms_max_age()]
 #' @export

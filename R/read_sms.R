@@ -46,15 +46,14 @@
 #'
 #' @export
 read_sms <- function(sheet_url, sheet = 1, col = "sms") {
-  
   .check_auth()
-  
+
   stopifnot(
     is.character(sheet_url), length(sheet_url) == 1, nchar(sheet_url) > 0,
     length(sheet) == 1,
-    length(col)   == 1
+    length(col) == 1
   )
-  
+
   raw <- tryCatch(
     googlesheets4::read_sheet(sheet_url, sheet = sheet),
     error = function(e) stop("Failed to read sheet: ", conditionMessage(e))
@@ -65,18 +64,23 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
     )) |>
     # Keep only messages from numeric senders (226xxxxxxxxx)
     dplyr::filter(grepl("^\\d{9,12}$", .data$sender))
-  
+
   if (!col %in% names(raw) && !is.numeric(col)) {
-    stop("Column '", col, "' not found in sheet. Available columns: ",
-         paste(names(raw), collapse = ", "))
+    stop(
+      "Column '", col, "' not found in sheet. Available columns: ",
+      paste(names(raw), collapse = ", ")
+    )
   }
-  
+
   texts <- as.character(dplyr::pull(raw, {{ col }}))
 
   # Parse sent date from raw$date (e.g. "July 4, 2026 at 12:49AM")
   sent_dates <- as.Date(
-    sub("\\s+at\\s+.*$", "", raw$date),
-    format = "%B %d, %Y"
+    lubridate::parse_date_time(
+      gsub(" at ", " ", raw$date, fixed = TRUE),
+      orders = "B d, Y I:Mp",
+      locale = "C"
+    )
   )
 
   empty_tbl <- tibble::tibble(
@@ -84,18 +88,18 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
     day = integer(), time = character(), eg_el_abbreviation = character(),
     value = numeric(), flag = character()
   )
-  
+
   valid <- !is.na(texts) & nchar(trimws(texts)) > 0
-  
+
   if (!any(valid)) {
     message("No SMS messages found in column '", col, "'.")
     return(list(gauge = empty_tbl, agro = empty_tbl, bad = raw[0, ], raw = raw))
   }
-  
+
   result <- parse_sms(texts[valid], sent_dates = sent_dates[valid])
 
   v_texts <- texts[valid]
-  v_sent  <- sent_dates[valid]
+  v_sent <- sent_dates[valid]
 
   # Structurally malformed gauge SMS
   struct_bad <- is_bad_sms(v_texts) & !is_agro_sms(v_texts)
@@ -103,23 +107,24 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
   # Gauge SMS with a date anomaly: future body date or body < sent_date
   body_dates <- suppressWarnings(as.Date(
     ifelse(is_gauge_sms(v_texts),
-           sub("^[^,]+,\\s*([0-9]{2}-[0-9]{2}-[0-9]{4}).*$", "\\1", v_texts),
-           NA_character_),
+      sub("^[^,]+,\\s*([0-9]{2}-[0-9]{2}-[0-9]{4}).*$", "\\1", v_texts),
+      NA_character_
+    ),
     format = "%d-%m-%Y"
   ))
   date_bad <- !is.na(body_dates) & !is.na(v_sent) & body_dates != v_sent
 
-  bad_mask   <- struct_bad | date_bad
-  bad_raw    <- raw[valid, ][bad_mask, ]
+  bad_mask <- struct_bad | date_bad
+  bad_raw <- raw[valid, ][bad_mask, ]
 
   bad_reason <- dplyr::case_when(
     # Date reasons take priority — is_bad_sms also catches date issues so a
     # future/too-old SMS would appear in both struct_bad and date_bad.
-    !is.na(body_dates[bad_mask]) & body_dates[bad_mask] > v_sent[bad_mask]  ~ "future date",
+    !is.na(body_dates[bad_mask]) & body_dates[bad_mask] > v_sent[bad_mask] ~ "future date",
     !is.na(body_dates[bad_mask]) &
       as.integer(v_sent[bad_mask] - body_dates[bad_mask]) > .max_sms_age() ~ "too old",
-    date_bad[bad_mask]                                                       ~ "late submission",
-    TRUE                                                                     ~ "malformed"
+    date_bad[bad_mask] ~ "late submission",
+    TRUE ~ "malformed"
   )
 
   result$bad <- dplyr::mutate(bad_raw, bad_reason = bad_reason)
