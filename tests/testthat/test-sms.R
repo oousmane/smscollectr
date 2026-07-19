@@ -48,23 +48,63 @@ test_that("fix_sms is vectorised", {
 })
 
 test_that(".parse_sms date rules relative to sent_date", {
+  old_max_age <- Sys.getenv("SMSCOLLECTR_MAX_AGE", unset = NA_character_)
+  
+  on.exit({
+    if (is.na(old_max_age)) {
+      Sys.unsetenv("SMSCOLLECTR_MAX_AGE")
+    } else {
+      Sys.setenv(SMSCOLLECTR_MAX_AGE = old_max_age)
+    }
+  }, add = TRUE)
+  
+  smscollectr::set_sms_max_age(days = 30)
+  
   sent <- as.Date("2026-07-03")
-
+  
   # body == sent_date → shift to sent_date - 1
-  r <- smscollectr:::.parse_sms("200068P, 03-07-2026, 21", sent_date = sent)
+  r <- smscollectr:::.parse_sms(
+    "200068P, 03-07-2026, 21",
+    sent_date = sent
+  )
+  
   expect_equal(r$day, 2L)
   expect_equal(r$month, 7L)
-
+  
   # body < sent_date, within max_age → parsed as body date
-  r <- smscollectr:::.parse_sms("200068P, 02-07-2026, 21", sent_date = sent)
+  r <- smscollectr:::.parse_sms(
+    "200068P, 02-07-2026, 21",
+    sent_date = sent
+  )
+  
   expect_equal(r$day, 2L)
-
+  expect_equal(r$month, 7L)
+  expect_false(is.na(r$eg_gh_id))
+  
   # body > sent_date → rejected
-  r <- smscollectr:::.parse_sms("200068P, 04-07-2026, 21", sent_date = sent)
+  r <- smscollectr:::.parse_sms(
+    "200068P, 04-07-2026, 21",
+    sent_date = sent
+  )
+  
   expect_true(is.na(r$eg_gh_id))
-
-  # body < sent_date, beyond max_age → rejected
-  r <- smscollectr:::.parse_sms("200068P, 28-06-2026, 21", sent_date = sent)
+  
+  # body < sent_date, within configured max_age → accepted
+  r <- smscollectr:::.parse_sms(
+    "200068P, 28-06-2026, 21",
+    sent_date = sent
+  )
+  
+  expect_equal(r$day, 28L)
+  expect_equal(r$month, 6L)
+  expect_false(is.na(r$eg_gh_id))
+  
+  # body < sent_date, beyond configured max_age → rejected
+  r <- smscollectr:::.parse_sms(
+    "200068P, 02-06-2026, 21",
+    sent_date = sent
+  )
+  
   expect_true(is.na(r$eg_gh_id))
 })
 
