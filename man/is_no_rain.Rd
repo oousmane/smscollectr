@@ -17,9 +17,9 @@ Uses both exact regex and fuzzy matching to catch common misspellings
 of the French phrase "pas de pluie" (no rain).
 }
 \examples{
-is_no_rain("pas de pluie")                        # TRUE
-is_no_rain("Pa de plu")                           # TRUE
-is_no_rain("boussouma n'a pas eu de pluie")       # TRUE
-is_no_rain("126")                                  # FALSE
+is_no_rain("pas de pluie") # TRUE
+is_no_rain("Pa de plu") # TRUE
+is_no_rain("boussouma n'a pas eu de pluie") # TRUE
+is_no_rain("126") # FALSE
 
 }

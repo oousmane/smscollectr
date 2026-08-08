@@ -120,6 +120,9 @@ is_no_rain <- function(x) {
 #' @param gauge Logical. If \code{TRUE} (default), validates via
 #'   \code{is_gauge_sms()} rules. If \code{FALSE}, validates via
 #'   \code{is_agro_sms()}.
+#' @param sent_date `Date(1)`. The date the message was received. The date
+#'   rules (not in the future, not older than \code{SMSCOLLECTR_MAX_AGE}
+#'   days) are evaluated relative to this date. Defaults to `Sys.Date()`.
 #'
 #' @return A logical scalar. \code{TRUE} if malformed, \code{FALSE} if valid.
 #'
@@ -134,9 +137,9 @@ is_no_rain <- function(x) {
 #' @seealso [is_gauge_sms()], [is_no_rain()], [fix_sms()]
 #'
 #' @export
-is_bad_sms <- function(x, gauge = TRUE) {
+is_bad_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
   if (length(x) > 1) {
-    return(vapply(x, is_bad_sms, logical(1), gauge = gauge))
+    return(vapply(x, is_bad_sms, logical(1), gauge = gauge, sent_date = sent_date))
   }
 
   if (gauge) {
@@ -171,13 +174,56 @@ is_bad_sms <- function(x, gauge = TRUE) {
           !grepl("^=?TR$", parts[3], ignore.case = TRUE) &&
           !is_no_rain(parts[3])) ||
         is.na(d) ||
-        d > Sys.Date() ||
-        as.integer(Sys.Date() - d) > .max_sms_age()
+        is.na(sent_date) ||
+        d > sent_date ||
+        as.integer(sent_date - d) > .max_sms_age()
     )
   }
 
   # Agro
   !is_agro_sms(x)
+}
+
+# Internal — normalise a single agro SMS value (strip units, fix decimal
+# separator, normalise NT/TR casing). See fix_sms(gauge = FALSE).
+.fix_agro_value <- function(raw, key) {
+  raw <- trimws(raw)
+
+  three_digit_keys <- c(
+    "Tn", "Tx", "TnSol", "TxSol", "T-10", "T-20", "T-50",
+    "Inso", "e", "BAC", "PICHE", "RA"
+  )
+  placeholder <- if (key %in% three_digit_keys) "xxx" else "xx"
+
+  # NT / Nt / nT / nt (any case) -> NT
+  if (grepl("^[Nn][Tt]$", raw)) {
+    return("NT")
+  }
+
+  # Already a missing placeholder (xx/xxx, any case) -> keep, normalised
+  if (grepl("^[Xx]{2,3}$", raw)) {
+    return(toupper(raw))
+  }
+
+  # TR / Tr / tr / tR -> TR
+  if (grepl("^[Tt][Rr]$", raw)) {
+    return("TR")
+  }
+
+  # Extract leading numeric part, ignore trailing units/text
+  m <- regmatches(raw, regexpr("^-?[0-9]+([.,][0-9]+)?", raw))
+  if (length(m) == 0 || !nzchar(m)) {
+    return(placeholder)
+  }
+
+  if (grepl("[.,]", m)) {
+    # Decimal separator present -> observer wrote a physical value,
+    # strip the separator to conform to the x10 convention (43.0 -> 430)
+    return(gsub("[.,]", "", m))
+  }
+
+  # No decimal separator -> already in the x10 SMS convention, pass through
+  m
 }
 
 
@@ -271,6 +317,10 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
 
     d <- as.Date(date, "%d-%m-%Y")
 
+    if (length(date) == 0) {
+      return(NA_character_)
+    }
+
     if (is.na(d)) {
       return(NA_character_)
     }
@@ -320,13 +370,74 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
   }
 
   if (!gauge) {
-    # if (length(x) > 1) return(unname(vapply(x, fix_sms, character(1),
-    #                                         gauge = gauge, sent_date = sent_date)))
-    # if (!is_agro_sms(x)) return(NA_character_)
+    if (length(x) > 1) {
+      return(unname(vapply(x, fix_sms, character(1),
+        gauge = gauge, sent_date = sent_date
+      )))
+    }
 
+    if (!is_agro_sms(x)) {
+      return(NA_character_)
+    }
 
-    stop("non-gauge SMS fixing is not yet implemented.", call. = FALSE)
+    sep <- if (grepl("\n", x, fixed = TRUE)) "\n" else "\\n"
+    lines <- trimws(strsplit(x, sep, fixed = TRUE)[[1]])
+    lines <- lines[nchar(lines) > 0]
+
+    station <- lines[1]
+    d <- as.Date(trimws(lines[2]), "%d-%m-%Y")
+
+    if (length(d) == 0) {
+      return(NA_character_)
+    }
+    if (is.na(d)) {
+      return(NA_character_)
+    }
+    if (is.na(sent_date)) {
+      return(NA_character_)
+    }
+    if (d > sent_date) {
+      return(NA_character_)
+    }
+    if (as.integer(sent_date - d) > .max_sms_age()) {
+      return(NA_character_)
+    }
+
+    date_fixed <- format(d, "%d-%m-%Y")
+
+    kv_lines <- vapply(lines[3:17], function(line) {
+      key <- sub("^([A-Za-z0-9-]+)\\s*=.*$", "\\1", line)
+      raw <- sub("^[A-Za-z0-9-]+\\s*=\\s*(.*)$", "\\1", line)
+      paste0(key, "= ", .fix_agro_value(raw, key))
+    }, character(1))
+
+    return(paste(c(station, date_fixed, kv_lines), collapse = "\n"))
   }
+}
+
+
+# Internal — known mismatches between the gauge station code an observer
+# texts in (P/A/C suffix) and the actual CLIDATA code for that station.
+# Synoptic (S) stations are excluded here; those are handled by name via
+# station_lookup / to_station_id().
+#
+# TODO: this is a patch, not a permanent fixture. Remove .egghid_fix_map
+# and fix_egghid() (and its call in .parse_sms()) once the SMS templates
+# are corrected upstream to send the right code directly.
+.egghid_fix_map <- c(
+  "200064P" = "200046P", # Boroum -> Bouroum
+  "200052P" = "200062P", # Imansgho
+  "200066C" = "200066P", # Kindi (C -> P)
+  "200139P" = "200138P", # Kampti
+  "200113P" = "200132P"  # Orodara
+)
+
+# Internal — corrects a gauge eg_gh_id against .egghid_fix_map. Codes with
+# no known correction are returned unchanged.
+fix_egghid <- function(x) {
+  key <- gsub("\\s+", "", toupper(x))
+  fixed <- unname(.egghid_fix_map[key])
+  ifelse(is.na(fixed), x, fixed)
 }
 
 
@@ -407,7 +518,10 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
   }
 
   tibble::tibble(
-    eg_gh_id = gsub("\\s+", "", sms_parts[1]),
+    # TODO: fix_egghid() is a patch for known sms/base code mismatches
+    # (.egghid_fix_map). Remove once the SMS templates are corrected
+    # upstream to send the right code directly.
+    eg_gh_id = fix_egghid(gsub("\\s+", "", sms_parts[1])),
     year     = as.integer(format(d, "%Y")),
     month    = as.integer(format(d, "%m")),
     day      = as.integer(format(d, "%d")),
@@ -533,6 +647,11 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
 
   # Line 2 — full date DD-MM-YYYY
   d <- as.Date(trimws(lines[2]), "%d-%m-%Y")
+
+  if (length(d) == 0) {
+    return(na_row)
+  }
+
   if (is.na(d)) {
     return(na_row)
   }
@@ -643,28 +762,21 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
 #' @seealso [read_sms()], [fix_sms()]
 #'
 #' @importFrom purrr map compact
-#' @importFrom dplyr bind_rows filter if_all everything group_by slice_tail
-#'   ungroup mutate select
+#' @importFrom dplyr bind_rows filter if_all everything group_by slice_tail ungroup mutate select
 #' @export
 parse_sms <- function(texts, sent_dates = NULL) {
   if (!is.character(texts)) {
     stop("`texts` must be a character vector.", call. = FALSE)
   }
-
   if (!is.null(sent_dates) && length(sent_dates) != length(texts)) {
     stop("`sent_dates` must have the same length as `texts`.", call. = FALSE)
   }
 
   empty <- function() {
     tibble::tibble(
-      eg_gh_id           = character(),
-      year               = integer(),
-      month              = integer(),
-      day                = integer(),
-      time               = character(),
-      eg_el_abbreviation = character(),
-      value              = numeric(),
-      flag               = character()
+      eg_gh_id = character(), year = integer(), month = integer(),
+      day = integer(), time = character(), eg_el_abbreviation = character(),
+      value = numeric(), flag = character()
     )
   }
 
@@ -675,14 +787,12 @@ parse_sms <- function(texts, sent_dates = NULL) {
     df |>
       dplyr::filter(!dplyr::if_all(dplyr::everything(), is.na)) |>
       dplyr::group_by(
-        .data$eg_gh_id, .data$year, .data$month,
-        .data$day, .data$eg_el_abbreviation
+        .data$eg_gh_id, .data$year, .data$month, .data$day, .data$eg_el_abbreviation
       ) |>
       dplyr::slice_tail(n = 1) |>
       dplyr::ungroup()
   }
 
-  # Keep sent_dates aligned with texts through all filtering steps
   keep <- !is.na(texts) & nchar(trimws(texts)) > 0
   texts <- texts[keep]
   sds <- if (!is.null(sent_dates)) sent_dates[keep] else rep(Sys.Date(), sum(keep))
@@ -691,8 +801,10 @@ parse_sms <- function(texts, sent_dates = NULL) {
     return(list(gauge = empty(), agro = empty()))
   }
 
-  # Fix only bad gauge SMS — never touch agro
-  gauge_mask <- is_bad_sms(texts, gauge = TRUE) & !is_agro_sms(texts)
+  # --- Fix gauge SMS (only the malformed ones) ---
+  gauge_mask <- mapply(is_bad_sms, x = texts, sent_date = sds,
+    MoreArgs = list(gauge = TRUE), USE.NAMES = FALSE
+  ) & !is_agro_sms(texts)
   if (any(gauge_mask)) {
     texts[gauge_mask] <- mapply(
       function(txt, sd) fix_sms(txt, sent_date = sd),
@@ -701,7 +813,16 @@ parse_sms <- function(texts, sent_dates = NULL) {
     )
   }
 
-  # Drop unfixable SMS, keeping sds in sync
+  # --- Fix agro SMS (values normalised regardless of structural validity) ---
+  agro_mask <- is_agro_sms(texts)
+  if (any(agro_mask)) {
+    texts[agro_mask] <- mapply(
+      function(txt, sd) fix_sms(txt, gauge = FALSE, sent_date = sd),
+      texts[agro_mask], sds[agro_mask],
+      SIMPLIFY = TRUE, USE.NAMES = FALSE
+    )
+  }
+
   keep2 <- !is.na(texts)
   texts <- texts[keep2]
   sds <- sds[keep2]
@@ -713,16 +834,11 @@ parse_sms <- function(texts, sent_dates = NULL) {
   gauge_mask2 <- is_gauge_sms(texts)
   gauge_rows <- purrr::map2(texts[gauge_mask2], sds[gauge_mask2], function(txt, sd) {
     row <- .parse_sms(txt, sent_date = sd) |>
-      dplyr::mutate(
-        time               = "06:00",
-        eg_el_abbreviation = "RR"
-      ) |>
-      dplyr::select(
-        dplyr::all_of(c(
-          "eg_gh_id", "year", "month", "day",
-          "time", "eg_el_abbreviation", "value", "flag"
-        ))
-      )
+      dplyr::mutate(time = "06:00", eg_el_abbreviation = "RR") |>
+      dplyr::select(dplyr::all_of(c(
+        "eg_gh_id", "year", "month", "day", "time",
+        "eg_el_abbreviation", "value", "flag"
+      )))
     if (is.na(row$eg_gh_id)) {
       return(NULL)
     }
@@ -731,7 +847,8 @@ parse_sms <- function(texts, sent_dates = NULL) {
     purrr::compact() |>
     dplyr::bind_rows()
 
-  agro_rows <- purrr::map(texts[is_agro_sms(texts)], .parse_agro_sms) |>
+  agro_rows <- texts[is_agro_sms(texts)] |>
+    purrr::map(.parse_agro_sms) |>
     purrr::compact() |>
     dplyr::bind_rows()
 

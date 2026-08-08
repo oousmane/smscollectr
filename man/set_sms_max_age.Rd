@@ -18,8 +18,8 @@ acceptable age (in days) for SMS messages. Equivalent to
 \code{Sys.setenv(SMSCOLLECTR_MAX_AGE = days)}.
 }
 \examples{
-set_sms_max_age(10)   # accept SMS up to 10 days old
-set_sms_max_age()     # reset to default (3)
+set_sms_max_age(10) # accept SMS up to 10 days old
+set_sms_max_age() # reset to default (3)
 
 }
 \seealso{

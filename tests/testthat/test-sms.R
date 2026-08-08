@@ -33,6 +33,76 @@ test_that("fix_sms is vectorised", {
   expect_equal(result[1], paste0("200068P, ", d2, ", 12"))
   expect_true(is.na(result[2]))
 })
+
+agro_msg <- function(date, values) {
+  keys <- c(
+    "Tn", "Tx", "TnSol", "TxSol", "T-10", "T-20", "T-50",
+    "Un", "Ux", "Vent", "Inso", "e", "BAC", "PICHE", "RA"
+  )
+  paste(c("DEDOUGOU", date, paste0(keys, "= ", values)), collapse = "\n")
+}
+
+test_that("fix_sms(gauge = FALSE) normalises agro SMS values", {
+  d2 <- format(Sys.Date() - 2, "%d-%m-%Y")
+
+  input <- agro_msg(d2, c(
+    "30,5", "43.8mm", "28.0", "350", "26,5", "24.0", "180",
+    "nt", "TR", "12 km/h", "085", "1,5", "034mm", "xx", "tr"
+  ))
+  expected <- agro_msg(d2, c(
+    "305", "438", "280", "350", "265", "240", "180",
+    "NT", "TR", "12", "085", "15", "034", "XX", "TR"
+  ))
+
+  expect_equal(fix_sms(input, gauge = FALSE, sent_date = Sys.Date()), expected)
+})
+
+test_that("fix_sms(gauge = FALSE) rejects future and too-old dates", {
+  future <- format(Sys.Date() + 3650, "%d-%m-%Y")
+  too_old <- format(Sys.Date() - 10, "%d-%m-%Y") # beyond default 3-day max age
+  values <- rep("xx", 15)
+
+  expect_true(is.na(fix_sms(agro_msg(future, values), gauge = FALSE)))
+  expect_true(is.na(fix_sms(agro_msg(too_old, values), gauge = FALSE)))
+})
+
+test_that("fix_sms(gauge = FALSE) does not shift a yesterday date", {
+  # Unlike the gauge path, the agro path has no "yesterday -> today" shift.
+  yesterday <- format(Sys.Date() - 1, "%d-%m-%Y")
+  values <- rep("xx", 15)
+
+  result <- fix_sms(agro_msg(yesterday, values), gauge = FALSE, sent_date = Sys.Date())
+  expect_equal(strsplit(result, "\n")[[1]][2], yesterday)
+})
+
+test_that("fix_sms(gauge = FALSE) returns NA for malformed input", {
+  expect_true(is.na(fix_sms("200068P, 24-06-2026, 21", gauge = FALSE)))
+  expect_true(is.na(fix_sms("DEDOUGOU\n11-05-2026\nTn= 305", gauge = FALSE))) # too few lines
+})
+
+test_that("fix_sms(gauge = FALSE) is vectorised", {
+  d2 <- format(Sys.Date() - 2, "%d-%m-%Y")
+  values <- rep("xx", 15)
+  valid <- agro_msg(d2, values)
+  invalid <- "not an agro sms"
+
+  result <- fix_sms(c(valid, invalid), gauge = FALSE, sent_date = Sys.Date())
+  expect_equal(result[1], agro_msg(d2, rep("XX", 15)))
+  expect_true(is.na(result[2]))
+  expect_null(names(result))
+})
+
+test_that(".fix_agro_value normalises raw values per key", {
+  expect_equal(smscollectr:::.fix_agro_value("nt", "Un"), "NT")
+  expect_equal(smscollectr:::.fix_agro_value("Nt", "T-10"), "NT")
+  expect_equal(smscollectr:::.fix_agro_value("tr", "RA"), "TR")
+  expect_equal(smscollectr:::.fix_agro_value("TR", "Ux"), "TR")
+  expect_equal(smscollectr:::.fix_agro_value("xx", "PICHE"), "XX") # not padded to xxx
+  expect_equal(smscollectr:::.fix_agro_value("XXX", "TxSol"), "XXX")
+  expect_equal(smscollectr:::.fix_agro_value("", "T-50"), "xxx") # unparseable, 3-digit key
+  expect_equal(smscollectr:::.fix_agro_value("", "Un"), "xx") # unparseable, 2-digit key
+})
+
 test_that("is_gauge_sms detects valid gauge SMS", {
   expect_true(is_gauge_sms("200001P, 03-06-2026, 125"))
   expect_true(is_gauge_sms("200096 P, 01-07-2026, 0"))

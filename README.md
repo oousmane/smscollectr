@@ -5,6 +5,11 @@
 
 <!-- badges: start -->
 
+[![pkgdown](https://github.com/oousmane/smscollectr/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/oousmane/smscollectr/actions/workflows/pkgdown.yaml)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
+[![R >= 4.1.0](https://img.shields.io/badge/R-%3E%3D4.1.0-blue.svg)](https://cran.r-project.org/)
+
 <!-- badges: end -->
 
 `smscollectr` is an R package designed for the collection, parsing, and

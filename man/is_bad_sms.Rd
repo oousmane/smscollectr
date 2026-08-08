@@ -4,7 +4,7 @@
 \alias{is_bad_sms}
 \title{Check whether an SMS is malformed}
 \usage{
-is_bad_sms(x, gauge = TRUE)
+is_bad_sms(x, gauge = TRUE, sent_date = Sys.Date())
 }
 \arguments{
 \item{x}{A character string containing the SMS text.}
@@ -12,6 +12,10 @@ is_bad_sms(x, gauge = TRUE)
 \item{gauge}{Logical. If \code{TRUE} (default), validates via
 \code{is_gauge_sms()} rules. If \code{FALSE}, validates via
 \code{is_agro_sms()}.}
+
+\item{sent_date}{\code{Date(1)}. The date the message was received. The date
+rules (not in the future, not older than \code{SMSCOLLECTR_MAX_AGE}
+days) are evaluated relative to this date. Defaults to \code{Sys.Date()}.}
 }
 \value{
 A logical scalar. \code{TRUE} if malformed, \code{FALSE} if valid.
@@ -32,12 +36,12 @@ Sys.setenv(SMSCOLLECTR_MAX_AGE = "10")
 }
 }
 \examples{
-is_bad_sms("200068P, 24-06-2026, 21")              # FALSE
-is_bad_sms("200068P, 24-06-2026, TR")              # FALSE
-is_bad_sms("200068P, 24-06-2026, 12mm")            # TRUE
-is_bad_sms("200068P, 24-06-2026, pas de pluie")    # FALSE
-is_bad_sms("200068P, 24-06-2026,")                 # TRUE
-is_bad_sms("200286P, 24-06-2026, 21")              # TRUE — ID out of range
+is_bad_sms("200068P, 24-06-2026, 21") # FALSE
+is_bad_sms("200068P, 24-06-2026, TR") # FALSE
+is_bad_sms("200068P, 24-06-2026, 12mm") # TRUE
+is_bad_sms("200068P, 24-06-2026, pas de pluie") # FALSE
+is_bad_sms("200068P, 24-06-2026,") # TRUE
+is_bad_sms("200286P, 24-06-2026, 21") # TRUE — ID out of range
 
 }
 \seealso{

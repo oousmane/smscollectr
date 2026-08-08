@@ -1,6 +1,6 @@
 Package: smscollectr
 Title: Collect and Process Rain Gauge SMS Data
-Version: 0.0.3
+Version: 0.1.0
 Authors@R: person("Ousmane", "Ouedraogo", role = c("aut", "cre"),
     email = "ouedraogo.ousmane@meteoburkina.bf")
 Description: Reads structured SMS messages forwarded to a Google Sheet by
@@ -9,7 +9,7 @@ Description: Reads structured SMS messages forwarded to a Google Sheet by
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
+RoxygenNote: 8.0.0
 Imports:
     googledrive,
     googlesheets4,
@@ -18,12 +18,12 @@ Imports:
     dplyr, 
     keyring,
     purrr,
+    withr,
     rlang
 URL: https://github.com/oousmane/smscollectr, https://oousmane.github.io/smscollectr/
 BugReports: https://github.com/oousmane/smscollectr/issues
 Depends: 
     R (>= 4.1.0)
 Suggests:
-    testthat (>= 3.0.0),
-    withr
+    testthat (>= 3.0.0)
 Config/testthat/edition: 3

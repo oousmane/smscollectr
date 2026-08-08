@@ -20,9 +20,9 @@ Whitespace between the digits and the letter, or between the letter and
 the comma, is tolerated.
 }
 \examples{
-is_gauge_sms("200001S, 03-06-2026, 125")   # TRUE
-is_gauge_sms("200096 P, 01-07-2026, 67")   # TRUE
-is_gauge_sms("hello world")                 # FALSE
-is_gauge_sms(NULL)                          # logical(0)
+is_gauge_sms("200001S, 03-06-2026, 125") # TRUE
+is_gauge_sms("200096 P, 01-07-2026, 67") # TRUE
+is_gauge_sms("hello world") # FALSE
+is_gauge_sms(NULL) # logical(0)
 
 }

@@ -14,7 +14,7 @@ Returns the current maximum acceptable age (in days) for SMS messages,
 as set by \code{SMSCOLLECTR_MAX_AGE} or \code{set_sms_max_age()}.
 }
 \examples{
-get_sms_max_age()   # 3 (default)
+get_sms_max_age() # 3 (default)
 
 }
 \seealso{

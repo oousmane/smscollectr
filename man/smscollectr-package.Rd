@@ -20,5 +20,10 @@ Useful links:
 \author{
 \strong{Maintainer}: Ousmane Ouedraogo \email{ouedraogo.ousmane@meteoburkina.bf}
 
+Authors:
+\itemize{
+  \item Ousmane Ouedraogo \email{ouedraogo.ousmane@meteoburkina.bf}
+}
+
 }
 \keyword{internal}

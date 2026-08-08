@@ -20,9 +20,9 @@ of \code{Key= value} lines.
 }
 \examples{
 msg <- "DEDOUGOU\n11-05-2026\nTn= 305\nTx= 438"
-is_agro_sms(msg)                          # TRUE
-is_agro_sms("200001S, 03-06-2026, 125")   # FALSE
-is_agro_sms(NULL)                         # logical(0)
+is_agro_sms(msg) # TRUE
+is_agro_sms("200001S, 03-06-2026, 125") # FALSE
+is_agro_sms(NULL) # logical(0)
 
 }
 \seealso{

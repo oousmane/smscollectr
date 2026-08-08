@@ -76,11 +76,12 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
 
   # Parse sent date from raw$date (e.g. "July 4, 2026 at 12:49AM")
   sent_dates <- as.Date(
-    lubridate::parse_date_time(
-      gsub(" at ", " ", raw$date, fixed = TRUE),
-      orders = "B d, Y I:Mp",
-      locale = "C"
-    )
+    withr::with_locale(c(LC_TIME = "C"), {
+      strptime(
+        gsub(" at ", " ", raw$date, fixed = TRUE),
+        format = "%B %d, %Y %I:%M%p"
+      )
+    })
   )
 
   empty_tbl <- tibble::tibble(
@@ -102,7 +103,10 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
   v_sent <- sent_dates[valid]
 
   # Structurally malformed gauge SMS
-  struct_bad <- is_bad_sms(v_texts) & !is_agro_sms(v_texts)
+  struct_bad <- mapply(is_bad_sms,
+    x = v_texts, sent_date = v_sent,
+    USE.NAMES = FALSE
+  ) & !is_agro_sms(v_texts)
 
   # Gauge SMS with a date anomaly: future body date or body < sent_date
   body_dates <- suppressWarnings(as.Date(
