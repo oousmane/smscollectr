@@ -17,3 +17,7 @@ Useful links:
 ## Author
 
 **Maintainer**: Ousmane Ouedraogo <ouedraogo.ousmane@meteoburkina.bf>
+
+Authors:
+
+- Ousmane Ouedraogo <ouedraogo.ousmane@meteoburkina.bf>

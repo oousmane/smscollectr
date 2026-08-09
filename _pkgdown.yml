@@ -1,4 +1,15 @@
-url: https://oousmane.github.io/smscollectr/
+url: https://oousmane.github.io/smscollectr
+
 template:
   bootstrap: 5
+
+home:
+  title: "smscollectr - parse sms observation data"
+
+navbar:
+  title: "smscollectr"
+  logo:
+    image: man/figures/smscollectr-logo.png
+    href: index.html
+    height: 30px
 

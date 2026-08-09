@@ -1,4 +1,4 @@
-# smscollectr
+# smscollectr ![smscollectr logo](reference/figures/smscollectr-logo.png)
 
 `smscollectr` is an R package designed for the collection, parsing, and
 export of meteorological observations transmitted via SMS. It is built
@@ -73,6 +73,7 @@ it straightforward to export each dataset separately for CLIDATA.
 # Installation
 
 ``` r
+
 # install.packages("pak")
 pak::pak("oousmane/smscollectr",
          auth_token = "ghp_xxxxxxxxxxxx")
@@ -94,6 +95,7 @@ Both are securely stored in the system credential store.
 Suitable for production servers and automated workflows.
 
 ``` r
+
 library(smscollectr)
 
 config_auth("path/to/service-account.json")
@@ -113,6 +115,7 @@ is required.
 For desktop use.
 
 ``` r
+
 sms_auth(email = "you@gmail.com")
 ```
 
@@ -122,6 +125,7 @@ sms_auth(email = "you@gmail.com")
 ## 2. Store the Google Sheet URL
 
 ``` r
+
 set_sheet_url(
   "https://docs.google.com/spreadsheets/d/SHEET_ID/edit"
 )
@@ -132,12 +136,14 @@ The URL is stored securely in the operating system keyring.
 Retrieve it anywhere using
 
 ``` r
+
 get_sheet_url()
 ```
 
 # Quick start
 
 ``` r
+
 library(smscollectr)
 
 result <- read_sms(

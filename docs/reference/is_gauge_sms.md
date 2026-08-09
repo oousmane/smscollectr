@@ -25,12 +25,12 @@ A `logical` vector the same length as `text`.
 ## Examples
 
 ``` r
-is_gauge_sms("200001S, 03-06-2026, 125")   # TRUE
+is_gauge_sms("200001S, 03-06-2026, 125") # TRUE
 #> [1] FALSE
-is_gauge_sms("200096 P, 01-07-2026, 67")   # TRUE
+is_gauge_sms("200096 P, 01-07-2026, 67") # TRUE
 #> [1] TRUE
-is_gauge_sms("hello world")                 # FALSE
+is_gauge_sms("hello world") # FALSE
 #> [1] FALSE
-is_gauge_sms(NULL)                          # logical(0)
+is_gauge_sms(NULL) # logical(0)
 #> logical(0)
 ```
