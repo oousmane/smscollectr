@@ -10,11 +10,29 @@ station_lookup <- c(
   "GAOUA-TONKAR"     = "200140S",
   "OUAGADOUGOU-AERO" = "200001S",
   "OUAHIGOUYA"       = "200035S",
-  "PO"               = "200114S"
-  # "VALLEE DU KOU"    = "",
-  # "BEREGADOUGOU"     = "",
-  # "DI-SOUROU"        = "",
-  # "NIANGOLOKO"       = ""
+  "PO"               = "200114S",
+  "VALLEE-DU-KOU"    = "200149A",
+  "BEREGADOUGOU"     = "200153A",
+  "DI-SOUROU"        = "200029A",
+  "NIANGOLOKO"       = "200133A",
+  "BAGRE"            = "200167A",
+  "KOMPIENGA"        = "200286A",
+  "MARKOYE"          = "200027A",
+  "BAM-TOURCOING"    = "200043A",
+  "NOUNA"            = "200053A",
+  "SARIA"            = "200065A",
+  "KAMBOINCE"        = "200072A",
+  "MOGTEDO"          = "200080A",
+  "BOULSA"           = "200082A",
+  "FARAKO-BA"        = "200098A",
+  "MANGA"            = "200115A",
+  "PAMA"             = "200125A",
+  "LOUMANA"          = "200129A",
+  "BATIE"            = "200144A",
+  "NDOROLA"          = "200147A",
+  "BAZEGA"           = "200152A",
+  "KIE"              = "200161A",
+  "KASSOU"           = "200162A"
 )
 
 element_lookup <- c(
@@ -35,4 +53,8 @@ element_lookup <- c(
   "BAC"  = "EVA"
 )
 
-usethis::use_data(station_lookup, element_lookup, internal = TRUE)
+usethis::use_data(
+  station_lookup,
+  element_lookup, 
+  internal = TRUE, overwrite = TRUE
+  )
