@@ -402,6 +402,10 @@ fix_sms <- function(x, gauge = TRUE, sent_date = Sys.Date()) {
     if (as.integer(sent_date - d) > .max_sms_age()) {
       return(NA_character_)
     }
+    
+    if (d == sent_date) {
+      d <- d-1
+    }
 
     date_fixed <- format(d, "%d-%m-%Y")
 
