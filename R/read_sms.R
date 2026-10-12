@@ -74,7 +74,10 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
       ~ vapply(.x, function(x) {
         if (is.null(x) || length(x) == 0) NA_character_ else as.character(x[[1]])
       }, character(1))
-    )) |>
+    )) 
+  
+  names(raw)[1:4] <- c("date","sender", "name", "sms" ) 
+  raw <- raw |>
     # Keep only messages from numeric senders (226xxxxxxxxx)
     dplyr::filter(grepl("^\\d{9,12}$", .data$sender))
 
