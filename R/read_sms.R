@@ -54,16 +54,30 @@ read_sms <- function(sheet_url, sheet = 1, col = "sms") {
     length(col) == 1
   )
 
+#  raw <- tryCatch(
+#    googlesheets4::read_sheet(sheet_url, sheet = sheet),
+#    error = function(e) stop("Failed to read sheet: ", conditionMessage(e))
+#  ) |>
+#    dplyr::mutate(dplyr::across(
+#      tidyselect::where(is.list),
+#      ~ vapply(.x, function(x) as.character(x[[1]]), character(1))
+#   )) |>
+#    # Keep only messages from numeric senders (226xxxxxxxxx)
+#    dplyr::filter(grepl("^\\d{9,12}$", .data$sender))
+
   raw <- tryCatch(
     googlesheets4::read_sheet(sheet_url, sheet = sheet),
     error = function(e) stop("Failed to read sheet: ", conditionMessage(e))
   ) |>
     dplyr::mutate(dplyr::across(
       tidyselect::where(is.list),
-      ~ vapply(.x, function(x) as.character(x[[1]]), character(1))
+      ~ vapply(.x, function(x) {
+        if (is.null(x) || length(x) == 0) NA_character_ else as.character(x[[1]])
+      }, character(1))
     )) |>
     # Keep only messages from numeric senders (226xxxxxxxxx)
     dplyr::filter(grepl("^\\d{9,12}$", .data$sender))
+
 
   if (!col %in% names(raw) && !is.numeric(col)) {
     stop(
